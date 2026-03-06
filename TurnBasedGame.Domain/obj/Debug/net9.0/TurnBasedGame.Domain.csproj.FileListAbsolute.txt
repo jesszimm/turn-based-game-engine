@@ -1,0 +1,11 @@
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/bin/Debug/net9.0/TurnBasedGame.Domain.deps.json
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/bin/Debug/net9.0/TurnBasedGame.Domain.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/bin/Debug/net9.0/TurnBasedGame.Domain.pdb
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.AssemblyInfoInputs.cache
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.AssemblyInfo.cs
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.csproj.CoreCompileInputs.cache
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/refint/TurnBasedGame.Domain.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/TurnBasedGame.Domain.pdb
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Domain/obj/Debug/net9.0/ref/TurnBasedGame.Domain.dll

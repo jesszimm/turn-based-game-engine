@@ -1,0 +1,15 @@
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/bin/Debug/net9.0/TurnBasedGame.Application.deps.json
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/bin/Debug/net9.0/TurnBasedGame.Application.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/bin/Debug/net9.0/TurnBasedGame.Application.pdb
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/bin/Debug/net9.0/TurnBasedGame.Domain.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/bin/Debug/net9.0/TurnBasedGame.Domain.pdb
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.csproj.AssemblyReference.cache
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.AssemblyInfoInputs.cache
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.AssemblyInfo.cs
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.csproj.CoreCompileInputs.cache
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBase.6E7DA60C.Up2Date
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/refint/TurnBasedGame.Application.dll
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/TurnBasedGame.Application.pdb
+/Users/jessicazimmerman/TurnBasedGame/TurnBasedGame.Application/obj/Debug/net9.0/ref/TurnBasedGame.Application.dll
