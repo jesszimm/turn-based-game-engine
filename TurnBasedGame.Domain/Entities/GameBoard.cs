@@ -31,7 +31,6 @@ public sealed class GameBoard
 
     /// <summary>
     /// Creates a new 5x5 game board.
-    /// All tiles are initialized as Plains terrain.
     /// </summary>
     public GameBoard() : this(5, 5)
     {
@@ -39,7 +38,6 @@ public sealed class GameBoard
 
     /// <summary>
     /// Creates a new game board with the specified dimensions.
-    /// All tiles are initialized as Plains terrain.
     /// </summary>
     /// <param name="width">Width in tiles (must be positive).</param>
     /// <param name="height">Height in tiles (must be positive).</param>
@@ -65,7 +63,7 @@ public sealed class GameBoard
             for (int x = 0; x < Width; x++)
             {
                 var position = new Position(x, y);
-                var tile = new Tile(position, TerrainType.Plains);
+                var tile = new Tile(position);
                 _tiles[position] = tile;
             }
         }
@@ -133,11 +131,11 @@ public sealed class GameBoard
 
     /// <summary>
     /// Places a unit on the board at the specified position.
-    /// Validates that the position is valid, passable, and unoccupied.
+    /// Validates that the position is valid and unoccupied.
     /// </summary>
     /// <param name="unit">Unit to place.</param>
     /// <param name="position">Position where the unit should be placed.</param>
-    /// <exception cref="InvalidMoveException">Thrown if the position is invalid, impassable, or occupied.</exception>
+    /// <exception cref="InvalidMoveException">Thrown if the position is invalid or occupied.</exception>
     public void PlaceUnit(Unit unit, Position position)
     {
         if (unit == null)
@@ -151,10 +149,6 @@ public sealed class GameBoard
 
         var tile = _tiles[position];
 
-        // Prevent placement on impassable terrain
-        if (!tile.IsPassable)
-            throw new InvalidMoveException($"Cannot place unit on impassable terrain at {position}");
-
         // Prevent placement on occupied tile
         if (tile.IsOccupied)
             throw new InvalidMoveException($"Position {position} is already occupied");
@@ -166,7 +160,7 @@ public sealed class GameBoard
 
     /// <summary>
     /// Moves a unit to an adjacent tile.
-    /// Validates movement rules: must be adjacent, within bounds, passable, and unoccupied.
+    /// Validates movement rules: must be adjacent, within bounds, and unoccupied.
     /// </summary>
     /// <param name="unit">Unit to move.</param>
     /// <param name="targetPosition">Destination position (must be adjacent).</param>
@@ -192,10 +186,6 @@ public sealed class GameBoard
             throw new InvalidMoveException($"Target position {targetPosition} is not adjacent to current position {unit.Position}");
 
         var targetTile = _tiles[targetPosition];
-
-        // Prevent movement onto impassable terrain
-        if (!targetTile.IsPassable)
-            throw new InvalidMoveException($"Target position {targetPosition} is not passable ({targetTile.Terrain})");
 
         // Prevent movement onto occupied tile
         if (targetTile.IsOccupied)
@@ -234,10 +224,6 @@ public sealed class GameBoard
 
         var targetTile = _tiles[targetPosition];
 
-        // Prevent movement onto impassable terrain
-        if (!targetTile.IsPassable)
-            throw new InvalidMoveException($"Target position {targetPosition} is not passable ({targetTile.Terrain})");
-
         // Prevent movement onto occupied tile
         if (targetTile.IsOccupied)
             throw new InvalidMoveException($"Target position {targetPosition} is already occupied");
@@ -247,26 +233,6 @@ public sealed class GameBoard
         currentTile.RemoveUnit();
         targetTile.PlaceUnit(unit.Id);
         unit.MoveTo(targetPosition);
-    }
-
-    /// <summary>
-    /// Sets the terrain type for a tile at the specified position.
-    /// Used during board setup.
-    /// </summary>
-    /// <param name="position">Position of the tile to modify.</param>
-    /// <param name="terrain">New terrain type.</param>
-    public void SetTerrain(Position position, TerrainType terrain)
-    {
-        var currentTile = GetTile(position);
-        var occupyingUnitId = currentTile.OccupyingUnitId;
-
-        var newTile = new Tile(position, terrain);
-
-        // Preserve unit occupation
-        if (occupyingUnitId.HasValue)
-            newTile.PlaceUnit(occupyingUnitId.Value);
-
-        _tiles[position] = newTile;
     }
 
     /// <summary>
@@ -314,7 +280,7 @@ public sealed class GameBoard
 
     /// <summary>
     /// Gets all valid positions a unit can move to from its current position.
-    /// Takes into account movement range, terrain passability, and tile occupation.
+    /// Takes into account movement range and tile occupation.
     /// </summary>
     /// <param name="unit">Unit to check movement options for.</param>
     /// <returns>Collection of valid destination positions.</returns>
@@ -340,7 +306,7 @@ public sealed class GameBoard
                 if (distance > 0 && distance <= movementRange)
                 {
                     var tile = _tiles[position];
-                    if (tile.IsPassable && !tile.IsOccupied)
+                    if (!tile.IsOccupied)
                     {
                         validPositions.Add(position);
                     }
@@ -368,7 +334,7 @@ public sealed class GameBoard
 
     /// <summary>
     /// Executes an attack from one unit to another.
-    /// Validates attack range using Manhattan distance, calculates damage,
+    /// Validates attack range using adjacency (including diagonals), calculates damage,
     /// reduces target health, and removes the target if health <= 0.
     /// </summary>
     /// <param name="attacker">The attacking unit.</param>
@@ -397,20 +363,14 @@ public sealed class GameBoard
         if (attacker.OwnerId == defender.OwnerId)
             throw new InvalidCombatException($"Unit {attacker.Name} cannot attack friendly unit {defender.Name}");
 
-        // Calculate Manhattan distance
-        var distance = attacker.Position.DistanceTo(defender.Position);
-
-        // Validate attack range (currently melee only - adjacent tiles)
-        if (distance != 1)
+        // Validate attack range (melee only - 8-direction adjacent tiles)
+        if (!attacker.Position.IsAdjacentTo(defender.Position, includeDiagonals: true))
             throw new InvalidCombatException(
                 $"Target {defender.Name} at {defender.Position} is not within attack range " +
-                $"(distance: {distance}, required: 1)");
-
-        // Get defender's tile for terrain bonus calculation
-        var defenderTile = GetTile(defender.Position);
+                "(required: adjacent tile, including diagonals)");
 
         // Calculate damage using combat resolver
-        var damage = combatResolver.CalculateDamage(attacker, defender, defenderTile);
+        var damage = combatResolver.CalculateDamage(attacker, defender);
 
         // Apply damage to defender
         defender.TakeDamage(damage);
@@ -448,9 +408,8 @@ public sealed class GameBoard
         if (attacker.OwnerId == defender.OwnerId)
             return false;
 
-        // Check if defender is within attack range (melee = adjacent)
-        var distance = attacker.Position.DistanceTo(defender.Position);
-        return distance == 1;
+        // Check if defender is within attack range (melee = 8-direction adjacent)
+        return attacker.Position.IsAdjacentTo(defender.Position, includeDiagonals: true);
     }
 
     /// <summary>

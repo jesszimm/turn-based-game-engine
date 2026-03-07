@@ -97,7 +97,7 @@ public sealed class Unit
 
     /// <summary>
     /// Checks if this unit can reach the specified position based on movement range.
-    /// Does not validate terrain passability or tile occupation.
+    /// Does not validate tile occupation.
     /// </summary>
     /// <param name="target">The target position to check.</param>
     /// <returns>True if the position is within movement range; otherwise, false.</returns>
@@ -115,7 +115,7 @@ public sealed class Unit
 
     /// <summary>
     /// Checks if this unit can attack a target at the specified position.
-    /// Uses melee range (adjacent tiles only).
+    /// Uses melee range (adjacent tiles, including diagonals).
     /// </summary>
     /// <param name="targetPosition">Position of the target unit.</param>
     /// <param name="targetOwnerId">Owner ID of the target unit.</param>
@@ -131,8 +131,8 @@ public sealed class Unit
         if (targetOwnerId == OwnerId)
             return false; // Cannot attack own units
 
-        // Melee range: must be adjacent (distance of 1)
-        return Position.DistanceTo(targetPosition) == 1;
+        // Melee range: 8-direction adjacency
+        return Position.IsAdjacentTo(targetPosition, includeDiagonals: true);
     }
 
     /// <summary>

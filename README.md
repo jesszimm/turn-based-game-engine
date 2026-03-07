@@ -11,8 +11,9 @@ This project is designed as a portfolio example for recruiters and hiring teams:
   - `W - Warrior` (frontline)
   - `S - Scout` (mobile flanker)
 - On a turn, a player selects one unit and performs one action:
+  - unit selection uses abbreviations (`W`, `S`)
   - `move`
-  - `attack` (melee adjacency)
+  - `attack` (melee adjacency, including diagonals)
 - Game ends when one side has no remaining units.
 
 ## Why This Project Is Interesting
@@ -23,6 +24,7 @@ This project is designed as a portfolio example for recruiters and hiring teams:
   - 1-indexed coordinates for human-friendly input
   - tactical-grid rendering
   - persistent on-screen rules and unit info
+  - in-game `HELP` command to re-open rules
   - retry flow for invalid actions without auto-ending turns
 
 ## Architecture
@@ -84,8 +86,8 @@ All design decisions, code review, and final acceptance were directed by me.
 
 ## What I Would Build Next
 
-- Configurable maps and terrain effects in active gameplay
-- Additional unit classes / abilities with cooldowns
-- Save/load and replay support
+- Configurable maps and scenario presets
+- Additional unit classes
+- Move players with arrows instead of coordinates
 - CI pipeline with automated build + tests
 - Optional AI opponent

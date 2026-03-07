@@ -16,7 +16,7 @@ public static class Program
         var gameService = new GameService();
 
         renderer.Clear();
-        System.Console.WriteLine("=== Tactical Grid Game ===");
+        WriteLineColored("=== Tactical Grid Game ===", ConsoleColor.Cyan);
         System.Console.WriteLine();
 
         var player1Name = ReadRequiredString("Enter Player 1 name: ");
@@ -32,19 +32,20 @@ public static class Program
 
         if (createResult.IsFailure || gameService.CurrentGame == null)
         {
-            System.Console.WriteLine($"Failed to create game: {createResult.ErrorMessage}");
+            WriteLineColored($"Failed to create game: {createResult.ErrorMessage}", ConsoleColor.Red);
             return;
         }
 
         var game = gameService.CurrentGame;
         if (!PlaceStartingUnits(gameService, game))
         {
-            System.Console.WriteLine("Failed to place starting units.");
+            WriteLineColored("Failed to place starting units.", ConsoleColor.Red);
             return;
         }
 
-        ShowUnitGuide();
-        System.Console.WriteLine("Press Enter to start the match...");
+        ShowUnitGuide(player1Name, player2Name);
+        ShowRulesSheet();
+        WriteLineColored("Press Enter to start the match...", ConsoleColor.DarkCyan);
         System.Console.ReadLine();
 
         while (!gameService.IsGameOver())
@@ -53,7 +54,7 @@ public static class Program
             while (!actionCompleted && !gameService.IsGameOver())
             {
                 renderer.Clear();
-                RenderBoardAndTurnInfo(renderer, gameService, game);
+                RenderBoardAndTurnInfo(renderer, gameService, game, player1Name, player2Name);
 
                 var selectedUnit = SelectCurrentPlayerUnit(gameService);
                 if (selectedUnit == null)
@@ -64,7 +65,7 @@ public static class Program
 
                 if (!actionCompleted)
                 {
-                    System.Console.WriteLine("Try again. Press Enter to continue.");
+                    WriteLineColored("Try again. Press Enter to continue.", ConsoleColor.Yellow);
                     System.Console.ReadLine();
                 }
             }
@@ -75,20 +76,23 @@ public static class Program
             var endResult = gameService.EndTurn(new EndTurnCommand());
             if (endResult.IsFailure)
             {
-                System.Console.WriteLine($"Could not end turn: {endResult.ErrorMessage}");
+                WriteLineColored($"Could not end turn: {endResult.ErrorMessage}", ConsoleColor.Red);
                 break;
             }
 
-            System.Console.WriteLine("Turn ended. Press Enter to continue.");
+            WriteLineColored("Turn ended. Press Enter to continue.", ConsoleColor.DarkCyan);
             System.Console.ReadLine();
         }
 
         renderer.Clear();
-        System.Console.WriteLine("=== GAME OVER ===");
-        renderer.RenderBoard(game.Board, game.Player1.Id, game.Player2.Id);
+        WriteLineColored("=== GAME OVER ===", ConsoleColor.Magenta);
+        renderer.RenderBoard(game.Board, game.Player1.Id, player1Name, game.Player2.Id, player2Name);
 
         var winner = gameService.GetWinner();
-        System.Console.WriteLine(winner == null ? "Draw." : $"Winner: {winner.Name}");
+        if (winner == null)
+            WriteLineColored("Draw.", ConsoleColor.Yellow);
+        else
+            WriteLineColored($"Winner: {winner.Name}", ConsoleColor.Green);
     }
 
     private static bool PlaceStartingUnits(GameService gameService, Game game)
@@ -98,22 +102,22 @@ public static class Program
             new PlaceUnitCommand
             {
                 UnitName = "Warrior", PlayerId = game.Player1.Id, X = 0, Y = 0,
-                MaxHealth = 100, AttackPower = 18, Defense = 5, MovementRange = 2
+                MaxHealth = 55, AttackPower = 30, Defense = 2, MovementRange = 2
             },
             new PlaceUnitCommand
             {
                 UnitName = "Scout", PlayerId = game.Player1.Id, X = 1, Y = 0,
-                MaxHealth = 75, AttackPower = 12, Defense = 3, MovementRange = 3
+                MaxHealth = 40, AttackPower = 24, Defense = 1, MovementRange = 3
             },
             new PlaceUnitCommand
             {
                 UnitName = "Warrior", PlayerId = game.Player2.Id, X = 4, Y = 4,
-                MaxHealth = 100, AttackPower = 18, Defense = 5, MovementRange = 2
+                MaxHealth = 55, AttackPower = 30, Defense = 2, MovementRange = 2
             },
             new PlaceUnitCommand
             {
                 UnitName = "Scout", PlayerId = game.Player2.Id, X = 3, Y = 4,
-                MaxHealth = 75, AttackPower = 12, Defense = 3, MovementRange = 3
+                MaxHealth = 40, AttackPower = 24, Defense = 1, MovementRange = 3
             }
         };
 
@@ -122,7 +126,7 @@ public static class Program
             var result = gameService.PlaceUnit(command);
             if (result.IsFailure)
             {
-                System.Console.WriteLine($"Placement failed: {result.ErrorMessage}");
+                WriteLineColored($"Placement failed: {result.ErrorMessage}", ConsoleColor.Red);
                 return false;
             }
         }
@@ -130,12 +134,19 @@ public static class Program
         return true;
     }
 
-    private static void RenderBoardAndTurnInfo(ConsoleBoardRenderer renderer, GameService gameService, Game game)
+    private static void RenderBoardAndTurnInfo(
+        ConsoleBoardRenderer renderer,
+        GameService gameService,
+        Game game,
+        string player1Name,
+        string player2Name)
     {
-        renderer.RenderBoard(game.Board, game.Player1.Id, game.Player2.Id);
+        renderer.RenderBoard(game.Board, game.Player1.Id, player1Name, game.Player2.Id, player2Name);
         var currentPlayer = gameService.GetCurrentPlayer();
-        System.Console.WriteLine($"Turn {game.TurnNumber} - Current Player: {currentPlayer?.Name}");
-        RenderRulesReference();
+        WriteColored($"Turn {game.TurnNumber} - Current Player: ", ConsoleColor.DarkCyan);
+        var currentPlayerColor = currentPlayer?.Id == game.Player1.Id ? ConsoleColor.Blue : ConsoleColor.Red;
+        WriteLineColored(currentPlayer?.Name ?? "Unknown", currentPlayerColor);
+        RenderRulesReference(player1Name, player2Name);
         System.Console.WriteLine();
     }
 
@@ -144,29 +155,28 @@ public static class Program
         var myUnits = gameService.GetCurrentPlayerUnits().ToList();
         if (myUnits.Count == 0)
         {
-            System.Console.WriteLine("No units available.");
+            WriteLineColored("No units available.", ConsoleColor.Yellow);
             return null;
         }
 
-        System.Console.WriteLine("Select a unit:");
-        for (int i = 0; i < myUnits.Count; i++)
+        WriteLineColored("Select a unit:", ConsoleColor.Cyan);
+        foreach (var unit in myUnits)
         {
-            var unit = myUnits[i];
-            System.Console.WriteLine(FormatUnitLine(i + 1, unit));
+            System.Console.WriteLine(FormatUnitLine(GetUnitAbbreviation(unit).ToString(), unit));
         }
 
         while (true)
         {
-            System.Console.Write("Unit #: ");
-            var input = System.Console.ReadLine();
-            if (int.TryParse(input, out var selectedIndex) &&
-                selectedIndex >= 1 &&
-                selectedIndex <= myUnits.Count)
+            var input = ReadInputWithHelp("Unit (W/S): ");
+            var key = input.Trim().ToUpperInvariant();
+            if (key.Length == 1)
             {
-                return myUnits[selectedIndex - 1];
+                var selected = myUnits.FirstOrDefault(unit => GetUnitAbbreviation(unit).ToString() == key);
+                if (selected != null)
+                    return selected;
             }
 
-            System.Console.WriteLine("Invalid selection.");
+            WriteLineColored("Invalid selection.", ConsoleColor.Red);
         }
     }
 
@@ -174,12 +184,11 @@ public static class Program
     {
         while (true)
         {
-            System.Console.Write("Action (move/attack): ");
-            var input = System.Console.ReadLine()?.Trim().ToLowerInvariant();
+            var input = ReadInputWithHelp("Action (move/attack): ").Trim().ToLowerInvariant();
             if (input is "move" or "attack")
                 return input;
 
-            System.Console.WriteLine("Please type 'move' or 'attack'.");
+            WriteLineColored("Please type 'move' or 'attack'.", ConsoleColor.Red);
         }
     }
 
@@ -187,17 +196,15 @@ public static class Program
     {
         if (action == "move")
         {
-            System.Console.Write("Target X (1-based): ");
-            if (!int.TryParse(System.Console.ReadLine(), out var displayX) || displayX < 1)
+            if (!int.TryParse(ReadInputWithHelp("Target X (1-based): "), out var displayX) || displayX < 1)
             {
-                System.Console.WriteLine("Invalid X coordinate.");
+                WriteLineColored("Invalid X coordinate.", ConsoleColor.Red);
                 return false;
             }
 
-            System.Console.Write("Target Y (1-based): ");
-            if (!int.TryParse(System.Console.ReadLine(), out var displayY) || displayY < 1)
+            if (!int.TryParse(ReadInputWithHelp("Target Y (1-based): "), out var displayY) || displayY < 1)
             {
-                System.Console.WriteLine("Invalid Y coordinate.");
+                WriteLineColored("Invalid Y coordinate.", ConsoleColor.Red);
                 return false;
             }
 
@@ -206,49 +213,52 @@ public static class Program
             var moveResult = gameService.MoveUnit(new MoveUnitCommand(selectedUnit.Id, x, y));
             if (moveResult.IsFailure)
             {
-                System.Console.WriteLine($"Move failed: {moveResult.ErrorMessage}");
+                WriteLineColored($"Move failed: {moveResult.ErrorMessage}", ConsoleColor.Red);
                 return false;
             }
 
-            System.Console.WriteLine($"Moved to ({displayX}, {displayY}).");
+            WriteLineColored($"Moved to ({displayX}, {displayY}).", ConsoleColor.Green);
             return true;
         }
 
         var enemyUnits = gameService.GetOpponentUnits().ToList();
         if (enemyUnits.Count == 0)
         {
-            System.Console.WriteLine("No enemy units available.");
+            WriteLineColored("No enemy units available.", ConsoleColor.Yellow);
             return false;
         }
 
-        System.Console.WriteLine("Select attack target:");
-        for (int i = 0; i < enemyUnits.Count; i++)
+        WriteLineColored("Select attack target:", ConsoleColor.Cyan);
+        foreach (var enemy in enemyUnits)
         {
-            var enemy = enemyUnits[i];
-            System.Console.WriteLine(FormatUnitLine(i + 1, enemy));
+            System.Console.WriteLine(FormatUnitLine(GetUnitAbbreviation(enemy).ToString(), enemy));
         }
 
         while (true)
         {
-            System.Console.Write("Target #: ");
-            var input = System.Console.ReadLine();
-            if (!int.TryParse(input, out var targetIndex) ||
-                targetIndex < 1 ||
-                targetIndex > enemyUnits.Count)
+            var input = ReadInputWithHelp("Target (W/S): ");
+            var key = input.Trim().ToUpperInvariant();
+            if (key.Length != 1)
             {
-                System.Console.WriteLine("Invalid selection.");
+                WriteLineColored("Invalid selection.", ConsoleColor.Red);
                 continue;
             }
 
-            var target = enemyUnits[targetIndex - 1];
+            var target = enemyUnits.FirstOrDefault(unit => GetUnitAbbreviation(unit).ToString() == key);
+            if (target == null)
+            {
+                WriteLineColored("Invalid selection.", ConsoleColor.Red);
+                continue;
+            }
+
             var attackResult = gameService.AttackUnit(new AttackUnitCommand(selectedUnit.Id, target.Id));
             if (attackResult.IsFailure)
             {
-                System.Console.WriteLine($"Attack failed: {attackResult.ErrorMessage}");
+                WriteLineColored($"Attack failed: {attackResult.ErrorMessage}", ConsoleColor.Red);
                 return false;
             }
 
-            System.Console.WriteLine($"Attack dealt {attackResult.Value} damage.");
+            WriteLineColored($"Attack dealt {attackResult.Value} damage.", ConsoleColor.Green);
             return true;
         }
     }
@@ -257,47 +267,111 @@ public static class Program
     {
         while (true)
         {
-            System.Console.Write(prompt);
+            WriteColored(prompt, ConsoleColor.DarkCyan);
             var input = System.Console.ReadLine()?.Trim();
             if (!string.IsNullOrWhiteSpace(input))
                 return input;
 
-            System.Console.WriteLine("Value cannot be empty.");
+            WriteLineColored("Value cannot be empty.", ConsoleColor.Red);
         }
     }
 
-    private static void ShowUnitGuide()
+    private static void ShowUnitGuide(string player1Name, string player2Name)
     {
         System.Console.WriteLine();
-        System.Console.WriteLine("Unit Guide (Symmetric Roster)");
-        System.Console.WriteLine("────────────────────────────────────────────────");
-        System.Console.WriteLine("Warrior  HP:100  ATK:18  DEF:5  MOVE:2  Role: balanced frontline fighter");
-        System.Console.WriteLine("Scout    HP:75   ATK:12  DEF:3  MOVE:3  Role: fast flanker");
-        System.Console.WriteLine("Combat range is melee (adjacent tiles).");
-        System.Console.WriteLine("Board colors: Blue = Player 1, Red = Player 2.");
-        System.Console.WriteLine("Coordinates shown in UI are 1-indexed (top-left is 1,1).");
+        WriteLineColored("Unit Guide (Symmetric Roster)", ConsoleColor.Cyan);
+        WriteLineColored("────────────────────────────────────────────────", ConsoleColor.DarkGray);
+        WriteLineColored("Warrior  HP:55   ATK:30  DEF:2  MOVE:2", ConsoleColor.Gray);
+        WriteLineColored("Scout    HP:40   ATK:24  DEF:1  MOVE:3", ConsoleColor.Gray);
+        WriteLineColored("Combat range is melee (8-direction adjacent tiles).", ConsoleColor.DarkYellow);
+        System.Console.Write("Board colors: ");
+        WriteColored("Blue", ConsoleColor.Blue);
+        System.Console.Write(" = ");
+        WriteColored(player1Name, ConsoleColor.Blue);
+        System.Console.Write(", ");
+        WriteColored("Red", ConsoleColor.Red);
+        System.Console.Write(" = ");
+        WriteColored(player2Name, ConsoleColor.Red);
+        System.Console.WriteLine(".");
         System.Console.WriteLine();
     }
 
-    private static void RenderRulesReference()
+    private static void ShowRulesSheet()
     {
-        System.Console.WriteLine("Rules: Melee range only (adjacent tiles).");
-        System.Console.WriteLine("W - Warrior  HP:100  ATK:18  DEF:5  MOVE:2  Role: balanced frontline");
-        System.Console.WriteLine("S - Scout    HP:75   ATK:12  DEF:3  MOVE:3  Role: fast flanker");
-        System.Console.WriteLine("Colors: Blue = Player 1, Red = Player 2");
+        WriteLineColored("Game Rules", ConsoleColor.Cyan);
+        WriteLineColored("────────────────────────────────────────────────", ConsoleColor.DarkGray);
+        WriteLineColored("HP   = Health Points. Unit is defeated at 0.", ConsoleColor.Gray);
+        WriteLineColored("ATK  = Attack. Base outgoing damage.", ConsoleColor.Gray);
+        WriteLineColored("DEF  = Defense. Reduces incoming damage.", ConsoleColor.Gray);
+        WriteLineColored("MOVE = Max tiles a unit can move per turn.", ConsoleColor.Gray);
+        WriteLineColored("Damage formula: max(Attacker ATK - Defender DEF, 1).", ConsoleColor.DarkYellow);
+        WriteLineColored("Combat range is melee (8-direction adjacent tiles only).", ConsoleColor.DarkYellow);
+        WriteLineColored("Type HELP during the game to view this sheet again.", ConsoleColor.DarkCyan);
+        System.Console.WriteLine();
     }
 
-    private static string FormatUnitLine(int displayIndex, Unit unit)
+    private static void RenderRulesReference(string player1Name, string player2Name)
+    {
+        WriteLineColored("Rules: Melee range only (8-direction adjacent tiles).", ConsoleColor.DarkYellow);
+        WriteLineColored("W - Warrior  HP:55   ATK:30  DEF:2  MOVE:2", ConsoleColor.Gray);
+        WriteLineColored("S - Scout    HP:40   ATK:24  DEF:1  MOVE:3", ConsoleColor.Gray);
+        System.Console.Write("Colors: ");
+        WriteColored("Blue", ConsoleColor.Blue);
+        System.Console.Write(" = ");
+        WriteColored(player1Name, ConsoleColor.Blue);
+        System.Console.Write(", ");
+        WriteColored("Red", ConsoleColor.Red);
+        System.Console.Write(" = ");
+        WriteColored(player2Name, ConsoleColor.Red);
+        System.Console.WriteLine();
+        WriteLineColored("Type HELP to review full rules.", ConsoleColor.DarkCyan);
+    }
+
+    private static string FormatUnitLine(string displayLabel, Unit unit)
     {
         var x = unit.Position.X + 1;
         var y = unit.Position.Y + 1;
         var abbreviation = GetUnitAbbreviation(unit);
-        return $"[{displayIndex}] {abbreviation} - {unit.Name,-8} HP:{unit.Stats.CurrentHealth,-3} Pos:({x},{y})";
+        if (string.Equals(displayLabel, abbreviation.ToString(), StringComparison.OrdinalIgnoreCase))
+            return $"[{displayLabel}] - {unit.Name,-8} HP:{unit.Stats.CurrentHealth,-3} Pos:({x},{y})";
+
+        return $"[{displayLabel}] {abbreviation} - {unit.Name,-8} HP:{unit.Stats.CurrentHealth,-3} Pos:({x},{y})";
     }
 
     private static char GetUnitAbbreviation(Unit unit)
     {
         var first = unit.Name.FirstOrDefault(char.IsLetterOrDigit);
         return first == default ? '?' : char.ToUpperInvariant(first);
+    }
+
+    private static string ReadInputWithHelp(string prompt)
+    {
+        while (true)
+        {
+            WriteColored(prompt, ConsoleColor.DarkCyan);
+            var input = System.Console.ReadLine()?.Trim();
+            if (string.Equals(input, "help", StringComparison.OrdinalIgnoreCase))
+            {
+                System.Console.WriteLine();
+                ShowRulesSheet();
+                continue;
+            }
+
+            return input ?? string.Empty;
+        }
+    }
+
+    private static void WriteColored(string text, ConsoleColor color)
+    {
+        var previousColor = System.Console.ForegroundColor;
+        System.Console.ForegroundColor = color;
+        System.Console.Write(text);
+        System.Console.ForegroundColor = previousColor;
+    }
+
+    private static void WriteLineColored(string text, ConsoleColor color)
+    {
+        WriteColored(text, color);
+        System.Console.WriteLine();
     }
 }

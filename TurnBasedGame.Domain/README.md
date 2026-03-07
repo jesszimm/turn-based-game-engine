@@ -22,7 +22,7 @@ It does not know about console input, rendering, persistence, or APIs.
 - `Entities/Unit.cs`
   - unit state (position, health, move/act flags)
 - `Entities/Player.cs`
-- `ValueObjects/Position.cs`, `UnitStats.cs`, `TerrainType.cs`
+- `ValueObjects/Position.cs`, `UnitStats.cs`
 - `Services/CombatResolver.cs`
   - deterministic damage calculation
 - `Exceptions/*`
@@ -30,8 +30,8 @@ It does not know about console input, rendering, persistence, or APIs.
 
 ## Key Domain Rules
 
-- Movement respects board bounds, occupancy, passability, and movement range.
-- Combat is melee (adjacent tiles).
+- Movement respects board bounds, occupancy, and movement range.
+- Combat is melee (adjacent tiles, including diagonals).
 - Dead units are removed from board state.
 - Turn ownership is enforced for actions.
 - Winner is determined when one player has no living units.

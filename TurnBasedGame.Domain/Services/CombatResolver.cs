@@ -6,7 +6,7 @@ namespace TurnBasedGame.Domain.Services;
 
 /// <summary>
 /// Simple deterministic combat resolver.
-/// Damage = Attacker.Attack - (Defender.Defense + TerrainBonus)
+/// Damage = Attacker.Attack - Defender.Defense
 /// No randomness - makes testing easier and gameplay more predictable.
 /// </summary>
 public sealed class CombatResolver : ICombatResolver
@@ -18,23 +18,17 @@ public sealed class CombatResolver : ICombatResolver
     /// </summary>
     /// <param name="attacker">The attacking unit.</param>
     /// <param name="defender">The defending unit.</param>
-    /// <param name="defenderTile">The tile the defender occupies.</param>
     /// <returns>Amount of damage to apply.</returns>
-    public int CalculateDamage(Unit attacker, Unit defender, Tile defenderTile)
+    public int CalculateDamage(Unit attacker, Unit defender)
     {
         if (attacker == null)
             throw new ArgumentNullException(nameof(attacker));
         if (defender == null)
             throw new ArgumentNullException(nameof(defender));
-        if (defenderTile == null)
-            throw new ArgumentNullException(nameof(defenderTile));
 
         var attackPower = attacker.Stats.AttackPower;
         var defense = defender.Stats.Defense;
-        var terrainBonus = defenderTile.GetDefenseBonus();
-
-        var totalDefense = defense + terrainBonus;
-        var damage = attackPower - totalDefense;
+        var damage = attackPower - defense;
 
         // Always deal at least minimum damage if attack goes through
         return Math.Max(damage, MinimumDamage);
@@ -45,22 +39,19 @@ public sealed class CombatResolver : ICombatResolver
     /// </summary>
     /// <param name="attacker">The attacking unit.</param>
     /// <param name="defender">The defending unit.</param>
-    /// <param name="defenderTile">The tile the defender occupies.</param>
     /// <exception cref="InvalidCombatException">Thrown if the attack violates combat rules.</exception>
-    public void ResolveCombat(Unit attacker, Unit defender, Tile defenderTile)
+    public void ResolveCombat(Unit attacker, Unit defender)
     {
         if (attacker == null)
             throw new ArgumentNullException(nameof(attacker));
         if (defender == null)
             throw new ArgumentNullException(nameof(defender));
-        if (defenderTile == null)
-            throw new ArgumentNullException(nameof(defenderTile));
 
         if (!attacker.CanAttackPosition(defender.Position, defender.OwnerId))
             throw new InvalidCombatException(
                 $"Unit {attacker.Name} cannot attack {defender.Name}");
 
-        var damage = CalculateDamage(attacker, defender, defenderTile);
+        var damage = CalculateDamage(attacker, defender);
 
         defender.TakeDamage(damage);
         attacker.MarkAsActed();

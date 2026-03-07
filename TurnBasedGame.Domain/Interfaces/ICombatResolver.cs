@@ -10,13 +10,12 @@ public interface ICombatResolver
 {
     /// <summary>
     /// Calculates the damage dealt by an attacker to a defender.
-    /// Takes into account unit stats and terrain modifiers.
+    /// Takes into account unit stats.
     /// </summary>
     /// <param name="attacker">The attacking unit</param>
     /// <param name="defender">The defending unit</param>
-    /// <param name="defenderTile">The tile the defender is standing on</param>
     /// <returns>The amount of damage to apply to the defender</returns>
-    int CalculateDamage(Unit attacker, Unit defender, Tile defenderTile);
+    int CalculateDamage(Unit attacker, Unit defender);
 
     /// <summary>
     /// Executes a combat action between two units.
@@ -24,6 +23,5 @@ public interface ICombatResolver
     /// </summary>
     /// <param name="attacker">The attacking unit</param>
     /// <param name="defender">The defending unit</param>
-    /// <param name="defenderTile">The tile the defender is standing on</param>
-    void ResolveCombat(Unit attacker, Unit defender, Tile defenderTile);
+    void ResolveCombat(Unit attacker, Unit defender);
 }

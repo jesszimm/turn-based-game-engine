@@ -19,19 +19,24 @@ public sealed class ConsoleBoardRenderer
     /// <summary>
     /// Renders the game board as a tactical grid.
     /// </summary>
-    public void RenderBoard(GameBoard board, Guid player1Id, Guid player2Id)
+    public void RenderBoard(
+        GameBoard board,
+        Guid player1Id,
+        string player1Name,
+        Guid player2Id,
+        string player2Name)
     {
         if (board == null)
             throw new ArgumentNullException(nameof(board));
 
         var yLabelWidth = Math.Max(2, board.Height.ToString().Length);
-        var headerPadding = new string(' ', yLabelWidth + 3);
-        var borderPadding = new string(' ', yLabelWidth + 2);
+        var borderPadding = new string(' ', yLabelWidth + 1);
 
-        System.Console.Write(headerPadding);
+        // X-axis tick labels, centered over each column cell.
+        System.Console.Write(borderPadding);
         for (int x = 0; x < board.Width; x++)
         {
-            System.Console.Write($" {x + 1,2} ");
+            System.Console.Write($" {(x + 1),2} ");
         }
         System.Console.Write(" X");
         System.Console.WriteLine();
@@ -86,8 +91,16 @@ public sealed class ConsoleBoardRenderer
             System.Console.WriteLine();
         }
 
-        System.Console.WriteLine($"{new string(' ', yLabelWidth)} Y");
-        System.Console.WriteLine("        Colors: Blue = Player 1, Red = Player 2");
+        WriteLineColored($"{new string(' ', yLabelWidth)} Y", ConsoleColor.DarkGray);
+        System.Console.Write("        Colors: ");
+        WriteColored("Blue", ConsoleColor.Blue);
+        System.Console.Write(" = ");
+        WriteColored(player1Name, ConsoleColor.Blue);
+        System.Console.Write(", ");
+        WriteColored("Red", ConsoleColor.Red);
+        System.Console.Write(" = ");
+        WriteColored(player2Name, ConsoleColor.Red);
+        System.Console.WriteLine();
         System.Console.WriteLine();
     }
 
@@ -106,4 +119,19 @@ public sealed class ConsoleBoardRenderer
         System.Console.ForegroundColor = previousColor;
         System.Console.Write(" ");
     }
+
+    private static void WriteColored(string text, ConsoleColor color)
+    {
+        var previousColor = System.Console.ForegroundColor;
+        System.Console.ForegroundColor = color;
+        System.Console.Write(text);
+        System.Console.ForegroundColor = previousColor;
+    }
+
+    private static void WriteLineColored(string text, ConsoleColor color)
+    {
+        WriteColored(text, color);
+        System.Console.WriteLine();
+    }
+
 }

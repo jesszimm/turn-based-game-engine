@@ -16,7 +16,9 @@ No game rules are implemented here.
 - 1-indexed board coordinates for player-facing input.
 - Tactical-grid rendering with axis labels.
 - Unit symbols (`W`, `S`, etc.) color-coded by player ownership.
+- Unit and target selection by abbreviation keys (`W`, `S`) instead of numeric IDs.
 - Persistent on-screen rules and roster summary.
+- `HELP` command available during prompts to re-open rules.
 - Invalid actions explain why they failed and re-prompt without ending turn.
 
 ## Main Files
