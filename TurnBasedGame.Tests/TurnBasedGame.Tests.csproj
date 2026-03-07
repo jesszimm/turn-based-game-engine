@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TurnBasedGame.Application\TurnBasedGame.Application.csproj" />
+    <ProjectReference Include="..\TurnBasedGame.Domain\TurnBasedGame.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,243 +1,91 @@
-# Turn-Based Tactical Game Engine
-
-A modular turn-based tactical game engine built with **C# and .NET**, designed to demonstrate clean architecture, separation of concerns, and testable domain-driven design.
-
-This project implements a console-based tactical grid battle game where two players take turns moving units and attacking on a grid-based battlefield. The architecture is intentionally designed to separate **game logic, application workflows, and presentation**, making the engine easy to extend to other interfaces such as a graphical UI or web client.
-
----
-
-# Project Goals
-
-This project was built to demonstrate:
-
-* Clean Architecture principles
-* Domain-driven design
-* Command/Query separation
-* Interface-based dependency injection
-* Testable business logic
-* Decoupled UI rendering
-* Expandable engine design
-
-The codebase is structured so the **core game rules are completely independent from the user interface**, allowing the engine to be reused with different frontends.
-
----
-
-# Gameplay Overview
-
-The game is played on a grid-based battlefield.
-
-Players take turns performing actions with their units.
-
-Available actions include:
-
-* Move a unit to an adjacent tile
-* Attack an enemy unit
-* End the turn
-
-Each unit has:
-
-* Health
-* Attack power
-* Movement range
-* Position on the grid
-
-The game ends when one player loses all units.
-
----
-
-# Architecture
-
-The project follows a layered architecture that separates responsibilities into distinct modules.
-
-```
-TurnBasedGame
-│
-├── Domain
-│   Core game rules and entities
-│
-├── Application
-│   Game use cases, commands, and queries
-│
-├── Infrastructure
-│   External implementations (future persistence, services)
-│
-├── ConsoleUI
-│   Input handling and board rendering for the console interface
-│
-└── Tests
-    Unit tests validating game behavior
-```
-
----
-
-# Layer Responsibilities
-
-## Domain
-
-Contains the core game logic.
-
-Examples:
-
-* Game entities
-* Board state
-* Unit behavior
-* Combat rules
-
-This layer contains **no dependencies on UI, frameworks, or infrastructure**.
-
----
-
-## Application
-
-Implements game workflows using commands and queries.
-
-Examples:
-
-* MoveUnitCommand
-* AttackCommand
-* GetBoardStateQuery
-
-This layer orchestrates domain behavior but does not contain UI code.
-
----
-
-## Console UI
-
-Handles user interaction.
-
-Responsibilities include:
-
-* Reading player input
-* Rendering the board
-* Displaying game events
-
-Because the UI depends only on interfaces defined in the Application layer, it can be replaced with another frontend without modifying the game engine.
-
----
-
-## Infrastructure
-
-Reserved for external systems such as:
-
-* Save/load functionality
-* Databases
-* Network multiplayer
-
-Currently minimal but structured for future expansion.
-
----
-
-# Key Design Decisions
-
-### Interface-Based Rendering
-
-Board rendering is abstracted behind an interface:
-
-```
-IBoardRenderer
-```
-
-This allows different implementations such as:
-
-* Console renderer
-* GUI renderer
-* Web renderer
-
-without changing game logic.
-
----
-
-### Command Pattern
-
-Game actions are implemented using commands:
-
-```
-MoveUnitCommand
-AttackCommand
-```
-
-This approach improves:
-
-* testability
-* separation of concerns
-* extensibility
-
----
-
-### Testable Domain Logic
-
-Game rules live entirely in the Domain layer and can be unit tested without UI dependencies.
-
----
-
-# Example Console Gameplay
-
-```
-Player 1 Turn
-
-  A B C D E
-1 . . . . .
-2 . P . E .
-3 . . . . .
-
-Select action:
-1 - Move
-2 - Attack
-3 - End Turn
-```
-
----
-
-# Running the Game
-
-Requirements:
-
-* .NET 9 SDK
-
-Clone the repository:
+# TurnBasedGame
+
+A turn-based tactical grid game built in C#/.NET with clean layer boundaries and deterministic combat.
+
+This project is designed as a portfolio example for recruiters and hiring teams: it demonstrates practical domain modeling, clear architecture, testability, and iterative product polish.
+
+## What The Game Does
+
+- 2-player tactical match on a grid.
+- Each player starts with the same roster:
+  - `W - Warrior` (frontline)
+  - `S - Scout` (mobile flanker)
+- On a turn, a player selects one unit and performs one action:
+  - `move`
+  - `attack` (melee adjacency)
+- Game ends when one side has no remaining units.
+
+## Why This Project Is Interesting
+
+- Domain rules are explicit and enforced in code (movement, range, turn ownership, victory).
+- The app uses a layered architecture (`Domain`, `Application`, `ConsoleUI`) rather than a monolith.
+- Console UX was intentionally iterated:
+  - 1-indexed coordinates for human-friendly input
+  - tactical-grid rendering
+  - persistent on-screen rules and unit info
+  - retry flow for invalid actions without auto-ending turns
+
+## Architecture
+
+- `TurnBasedGame.Domain`:
+  - game rules, entities, value objects, exceptions
+  - no UI concerns
+- `TurnBasedGame.Application`:
+  - command contracts, `GameService`, `Result` pattern
+  - orchestrates domain behavior and returns user-safe outcomes
+- `TurnBasedGame.ConsoleUI`:
+  - input loop and board rendering
+  - no business rules
+- `TurnBasedGame.Tests`:
+  - integration-style tests for key gameplay flows
+
+See layer-specific READMEs for detail:
+- `TurnBasedGame.Domain/README.md`
+- `TurnBasedGame.Application/README.md`
+- `TurnBasedGame.ConsoleUI/README.md`
+- `STRUCTURE.md` (repository layout and dependency direction)
+
+## Tech Stack
+
+- `.NET 9`
+- `C#`
+- `xUnit`
+
+## Run The Game
 
 ```bash
-git clone https://github.com/jesszimm/turn-based-game-engine.git
+dotnet run --project TurnBasedGame.ConsoleUI/TurnBasedGame.ConsoleUI.csproj
 ```
 
-Run the game:
+## Build
 
 ```bash
-dotnet run --project TurnBasedGame.ConsoleUI
+dotnet build TurnBasedGame.sln
 ```
 
----
-
-# Running Tests
+## Test
 
 ```bash
-dotnet test
+dotnet test TurnBasedGame.Tests/TurnBasedGame.Tests.csproj
 ```
 
----
+## AI Assistance Disclosure
 
-# Future Improvements
+This project was built with AI-assisted development.
 
-Planned features include:
+I used OpenAI and Claude tooling as an engineering copilot for:
+- refactoring and architectural cleanup
+- gameplay loop implementation
+- UI/UX polish in the console layer
+- test generation and bug-fix iteration
+- documentation drafting
 
-* Graphical UI (WinUI or MonoGame)
-* Mouse-based input
-* Animated combat
-* AI opponents
-* Save/load game state
-* Network multiplayer
+All design decisions, code review, and final acceptance were directed by me.
 
----
+## What I Would Build Next
 
-# What This Project Demonstrates
-
-This repository demonstrates my ability to:
-
-* design layered architectures
-* implement clean separation of concerns
-* build extensible systems
-* write maintainable C# code
-* structure testable domain logic
-
----
-
+- Configurable maps and terrain effects in active gameplay
+- Additional unit classes / abilities with cooldowns
+- Save/load and replay support
+- CI pipeline with automated build + tests
+- Optional AI opponent
