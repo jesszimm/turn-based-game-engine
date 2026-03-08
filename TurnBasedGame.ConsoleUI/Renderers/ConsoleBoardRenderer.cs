@@ -24,7 +24,8 @@ public sealed class ConsoleBoardRenderer
         Guid player1Id,
         string player1Name,
         Guid player2Id,
-        string player2Name)
+        string player2Name,
+        Position? highlightedPosition = null)
     {
         if (board == null)
             throw new ArgumentNullException(nameof(board));
@@ -56,29 +57,49 @@ public sealed class ConsoleBoardRenderer
             {
                 var position = new Position(x, y);
                 var unit = board.GetUnitAtPosition(position);
+                var isHighlighted =
+                    highlightedPosition != null &&
+                    highlightedPosition.X == x &&
+                    highlightedPosition.Y == y;
 
                 char symbol;
                 if (unit == null)
                 {
                     symbol = '.';
-                    System.Console.Write($" {symbol} |");
+                    if (isHighlighted)
+                        WriteHighlightedCell(symbol, ConsoleColor.Yellow, ConsoleColor.DarkBlue);
+                    else
+                        System.Console.Write($" {symbol} |");
                 }
                 else if (unit.OwnerId == player1Id)
                 {
                     symbol = GetUnitAbbreviation(unit);
-                    WriteColoredSymbol(symbol, ConsoleColor.Blue);
-                    System.Console.Write("|");
+                    if (isHighlighted)
+                        WriteHighlightedCell(symbol, ConsoleColor.Blue, ConsoleColor.DarkYellow);
+                    else
+                    {
+                        WriteColoredSymbol(symbol, ConsoleColor.Blue);
+                        System.Console.Write("|");
+                    }
                 }
                 else if (unit.OwnerId == player2Id)
                 {
                     symbol = GetUnitAbbreviation(unit);
-                    WriteColoredSymbol(symbol, ConsoleColor.Red);
-                    System.Console.Write("|");
+                    if (isHighlighted)
+                        WriteHighlightedCell(symbol, ConsoleColor.Red, ConsoleColor.DarkYellow);
+                    else
+                    {
+                        WriteColoredSymbol(symbol, ConsoleColor.Red);
+                        System.Console.Write("|");
+                    }
                 }
                 else
                 {
                     symbol = '?';
-                    System.Console.Write($" {symbol} |");
+                    if (isHighlighted)
+                        WriteHighlightedCell(symbol, ConsoleColor.White, ConsoleColor.DarkYellow);
+                    else
+                        System.Console.Write($" {symbol} |");
                 }
             }
 
@@ -118,6 +139,20 @@ public sealed class ConsoleBoardRenderer
         System.Console.Write(symbol);
         System.Console.ForegroundColor = previousColor;
         System.Console.Write(" ");
+    }
+
+    private static void WriteHighlightedCell(char symbol, ConsoleColor foreground, ConsoleColor background)
+    {
+        var previousForeground = System.Console.ForegroundColor;
+        var previousBackground = System.Console.BackgroundColor;
+
+        System.Console.ForegroundColor = foreground;
+        System.Console.BackgroundColor = background;
+        System.Console.Write($" {symbol} ");
+
+        System.Console.ForegroundColor = previousForeground;
+        System.Console.BackgroundColor = previousBackground;
+        System.Console.Write("|");
     }
 
     private static void WriteColored(string text, ConsoleColor color)

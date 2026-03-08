@@ -88,6 +88,5 @@ All design decisions, code review, and final acceptance were directed by me.
 
 - Configurable maps and scenario presets
 - Additional unit classes
-- Move players with arrows instead of coordinates
 - CI pipeline with automated build + tests
 - Optional AI opponent

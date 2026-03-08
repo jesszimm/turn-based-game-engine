@@ -2,6 +2,7 @@
 using TurnBasedGame.Application.Services;
 using TurnBasedGame.ConsoleUI.Renderers;
 using TurnBasedGame.Domain.Entities;
+using TurnBasedGame.Domain.ValueObjects;
 
 namespace TurnBasedGame.ConsoleUI;
 
@@ -61,7 +62,14 @@ public static class Program
                     break;
 
                 var action = ReadActionChoice();
-                actionCompleted = ExecuteAction(gameService, selectedUnit, action);
+                actionCompleted = ExecuteAction(
+                    renderer,
+                    gameService,
+                    game,
+                    selectedUnit,
+                    action,
+                    player1Name,
+                    player2Name);
 
                 if (!actionCompleted)
                 {
@@ -139,9 +147,10 @@ public static class Program
         GameService gameService,
         Game game,
         string player1Name,
-        string player2Name)
+        string player2Name,
+        Position? highlightedPosition = null)
     {
-        renderer.RenderBoard(game.Board, game.Player1.Id, player1Name, game.Player2.Id, player2Name);
+        renderer.RenderBoard(game.Board, game.Player1.Id, player1Name, game.Player2.Id, player2Name, highlightedPosition);
         var currentPlayer = gameService.GetCurrentPlayer();
         WriteColored($"Turn {game.TurnNumber} - Current Player: ", ConsoleColor.DarkCyan);
         var currentPlayerColor = currentPlayer?.Id == game.Player1.Id ? ConsoleColor.Blue : ConsoleColor.Red;
@@ -182,34 +191,48 @@ public static class Program
 
     private static string ReadActionChoice()
     {
+        WriteLineColored("Choose action:", ConsoleColor.Cyan);
+        System.Console.WriteLine("[A] - Attack");
+        System.Console.WriteLine("[M] - Move");
+
         while (true)
         {
-            var input = ReadInputWithHelp("Action (move/attack): ").Trim().ToLowerInvariant();
-            if (input is "move" or "attack")
-                return input;
+            var input = ReadInputWithHelp("Action (A/M): ").Trim().ToUpperInvariant();
+            if (input == "A")
+                return "attack";
 
-            WriteLineColored("Please type 'move' or 'attack'.", ConsoleColor.Red);
+            if (input == "M")
+                return "move";
+
+            WriteLineColored("Please type A or M.", ConsoleColor.Red);
         }
     }
 
-    private static bool ExecuteAction(GameService gameService, Unit selectedUnit, string action)
+    private static bool ExecuteAction(
+        ConsoleBoardRenderer renderer,
+        GameService gameService,
+        Game game,
+        Unit selectedUnit,
+        string action,
+        string player1Name,
+        string player2Name)
     {
         if (action == "move")
         {
-            if (!int.TryParse(ReadInputWithHelp("Target X (1-based): "), out var displayX) || displayX < 1)
+            if (!TryReadMoveTargetWithArrowKeys(
+                    renderer,
+                    gameService,
+                    game,
+                    selectedUnit,
+                    player1Name,
+                    player2Name,
+                    out var x,
+                    out var y))
             {
-                WriteLineColored("Invalid X coordinate.", ConsoleColor.Red);
+                WriteLineColored("Move canceled.", ConsoleColor.Yellow);
                 return false;
             }
 
-            if (!int.TryParse(ReadInputWithHelp("Target Y (1-based): "), out var displayY) || displayY < 1)
-            {
-                WriteLineColored("Invalid Y coordinate.", ConsoleColor.Red);
-                return false;
-            }
-
-            var x = displayX - 1;
-            var y = displayY - 1;
             var moveResult = gameService.MoveUnit(new MoveUnitCommand(selectedUnit.Id, x, y));
             if (moveResult.IsFailure)
             {
@@ -217,7 +240,7 @@ public static class Program
                 return false;
             }
 
-            WriteLineColored($"Moved to ({displayX}, {displayY}).", ConsoleColor.Green);
+            WriteLineColored($"Moved to ({x + 1}, {y + 1}).", ConsoleColor.Green);
             return true;
         }
 
@@ -260,6 +283,58 @@ public static class Program
 
             WriteLineColored($"Attack dealt {attackResult.Value} damage.", ConsoleColor.Green);
             return true;
+        }
+    }
+
+    private static bool TryReadMoveTargetWithArrowKeys(
+        ConsoleBoardRenderer renderer,
+        GameService gameService,
+        Game game,
+        Unit selectedUnit,
+        string player1Name,
+        string player2Name,
+        out int targetX,
+        out int targetY)
+    {
+        targetX = selectedUnit.Position.X;
+        targetY = selectedUnit.Position.Y;
+
+        while (true)
+        {
+            renderer.Clear();
+            RenderBoardAndTurnInfo(renderer, gameService, game, player1Name, player2Name, new Position(targetX, targetY));
+            WriteLineColored($"Selected unit: {selectedUnit.Name}", ConsoleColor.Cyan);
+            WriteLineColored(
+                "Use arrow keys to choose destination. Enter=confirm, Esc=cancel, H=help",
+                ConsoleColor.DarkCyan);
+            WriteLineColored($"Current target: ({targetX + 1}, {targetY + 1})", ConsoleColor.Gray);
+
+            var key = System.Console.ReadKey(intercept: true);
+            switch (key.Key)
+            {
+                case ConsoleKey.LeftArrow:
+                    targetX = Math.Max(0, targetX - 1);
+                    break;
+                case ConsoleKey.RightArrow:
+                    targetX = Math.Min(game.Board.Width - 1, targetX + 1);
+                    break;
+                case ConsoleKey.UpArrow:
+                    targetY = Math.Max(0, targetY - 1);
+                    break;
+                case ConsoleKey.DownArrow:
+                    targetY = Math.Min(game.Board.Height - 1, targetY + 1);
+                    break;
+                case ConsoleKey.Enter:
+                    return true;
+                case ConsoleKey.Escape:
+                    return false;
+                case ConsoleKey.H:
+                    renderer.Clear();
+                    ShowRulesSheet();
+                    WriteLineColored("Press any key to return to move selection...", ConsoleColor.DarkCyan);
+                    System.Console.ReadKey(intercept: true);
+                    break;
+            }
         }
     }
 
