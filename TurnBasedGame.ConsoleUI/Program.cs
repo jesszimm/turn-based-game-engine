@@ -15,13 +15,15 @@ public static class Program
     {
         var renderer = new ConsoleBoardRenderer();
         var gameService = new GameService();
+        var nextAiMoveUnitAbbreviation = 'W';
 
         renderer.Clear();
         WriteLineColored("=== Tactical Grid Game ===", ConsoleColor.Cyan);
         System.Console.WriteLine();
 
+        var isPlayer2Ai = ReadYesNo("Play against AI opponent? (Y/N): ");
         var player1Name = ReadRequiredString("Enter Player 1 name: ");
-        var player2Name = ReadRequiredString("Enter Player 2 name: ");
+        var player2Name = isPlayer2Ai ? "CPU" : ReadRequiredString("Enter Player 2 name: ");
 
         var createResult = gameService.CreateGame(new CreateGameCommand
         {
@@ -56,6 +58,14 @@ public static class Program
             {
                 renderer.Clear();
                 RenderBoardAndTurnInfo(renderer, gameService, game, player1Name, player2Name);
+
+                var currentPlayer = gameService.GetCurrentPlayer();
+                if (isPlayer2Ai && currentPlayer?.Id == game.Player2.Id)
+                {
+                    ExecuteAiTurn(gameService, game, ref nextAiMoveUnitAbbreviation);
+                    actionCompleted = true;
+                    continue;
+                }
 
                 var selectedUnit = SelectCurrentPlayerUnit(gameService);
                 if (selectedUnit == null)
@@ -110,22 +120,22 @@ public static class Program
             new PlaceUnitCommand
             {
                 UnitName = "Warrior", PlayerId = game.Player1.Id, X = 0, Y = 0,
-                MaxHealth = 55, AttackPower = 30, Defense = 2, MovementRange = 2
+                MaxHealth = 55, AttackPower = 24, Defense = 0, MovementRange = 2
             },
             new PlaceUnitCommand
             {
                 UnitName = "Scout", PlayerId = game.Player1.Id, X = 1, Y = 0,
-                MaxHealth = 40, AttackPower = 24, Defense = 1, MovementRange = 3
+                MaxHealth = 40, AttackPower = 18, Defense = 0, MovementRange = 3
             },
             new PlaceUnitCommand
             {
                 UnitName = "Warrior", PlayerId = game.Player2.Id, X = 4, Y = 4,
-                MaxHealth = 55, AttackPower = 30, Defense = 2, MovementRange = 2
+                MaxHealth = 55, AttackPower = 24, Defense = 0, MovementRange = 2
             },
             new PlaceUnitCommand
             {
                 UnitName = "Scout", PlayerId = game.Player2.Id, X = 3, Y = 4,
-                MaxHealth = 40, AttackPower = 24, Defense = 1, MovementRange = 3
+                MaxHealth = 40, AttackPower = 18, Defense = 0, MovementRange = 3
             }
         };
 
@@ -338,6 +348,65 @@ public static class Program
         }
     }
 
+    private static void ExecuteAiTurn(GameService gameService, Game game, ref char nextAiMoveUnitAbbreviation)
+    {
+        var aiUnits = gameService.GetCurrentPlayerUnits().Where(u => u.IsAlive).ToList();
+        var enemyUnits = gameService.GetOpponentUnits().Where(u => u.IsAlive).ToList();
+
+        var attackOptions = (
+            from attacker in aiUnits
+            from defender in enemyUnits
+            where attacker.Position.IsAdjacentTo(defender.Position, includeDiagonals: true)
+            select new { Attacker = attacker, Defender = defender })
+            .OrderBy(option => GetAiAttackerPriority(option.Attacker))
+            .ThenBy(option => option.Defender.Stats.CurrentHealth)
+            .ToList();
+
+        foreach (var option in attackOptions)
+        {
+            var attack = gameService.AttackUnit(new AttackUnitCommand(option.Attacker.Id, option.Defender.Id));
+            if (attack.IsSuccess)
+            {
+                WriteLineColored(
+                    $"CPU used {option.Attacker.Name} and attacked {option.Defender.Name} for {attack.Value} damage.",
+                    ConsoleColor.Green);
+                return;
+            }
+        }
+
+        var preferredFirst = nextAiMoveUnitAbbreviation;
+        var preferredSecond = preferredFirst == 'W' ? 'S' : 'W';
+        var orderedAiUnits = aiUnits
+            .OrderBy(unit => GetUnitMovePriority(unit, preferredFirst, preferredSecond))
+            .ToList();
+
+        foreach (var unit in orderedAiUnits)
+        {
+            var validMoves = game.Board.GetValidMovePositions(unit).ToList();
+            if (validMoves.Count == 0)
+                continue;
+
+            var bestMove = validMoves
+                .OrderBy(position => enemyUnits
+                    .Select(enemy => ChebyshevDistance(position, enemy.Position))
+                    .DefaultIfEmpty(int.MaxValue)
+                    .Min())
+                .First();
+
+            var move = gameService.MoveUnit(new MoveUnitCommand(unit.Id, bestMove.X, bestMove.Y));
+            if (move.IsSuccess)
+            {
+                WriteLineColored(
+                    $"CPU moved {unit.Name} to ({bestMove.X + 1}, {bestMove.Y + 1}).",
+                    ConsoleColor.Green);
+                nextAiMoveUnitAbbreviation = nextAiMoveUnitAbbreviation == 'W' ? 'S' : 'W';
+                return;
+            }
+        }
+
+        WriteLineColored("CPU had no valid attack or move and skipped action.", ConsoleColor.Yellow);
+    }
+
     private static string ReadRequiredString(string prompt)
     {
         while (true)
@@ -351,13 +420,29 @@ public static class Program
         }
     }
 
+    private static bool ReadYesNo(string prompt)
+    {
+        while (true)
+        {
+            WriteColored(prompt, ConsoleColor.DarkCyan);
+            var input = System.Console.ReadLine()?.Trim().ToUpperInvariant();
+            if (input is "Y" or "YES")
+                return true;
+
+            if (input is "N" or "NO")
+                return false;
+
+            WriteLineColored("Please enter Y or N.", ConsoleColor.Red);
+        }
+    }
+
     private static void ShowUnitGuide(string player1Name, string player2Name)
     {
         System.Console.WriteLine();
         WriteLineColored("Unit Guide (Symmetric Roster)", ConsoleColor.Cyan);
         WriteLineColored("────────────────────────────────────────────────", ConsoleColor.DarkGray);
-        WriteLineColored("Warrior  HP:55   ATK:30  DEF:2  MOVE:2", ConsoleColor.Gray);
-        WriteLineColored("Scout    HP:40   ATK:24  DEF:1  MOVE:3", ConsoleColor.Gray);
+        WriteLineColored("Warrior  HP:55   ATK:24  MOVE:2", ConsoleColor.Gray);
+        WriteLineColored("Scout    HP:40   ATK:18  MOVE:3", ConsoleColor.Gray);
         WriteLineColored("Combat range is melee (8-direction adjacent tiles).", ConsoleColor.DarkYellow);
         System.Console.Write("Board colors: ");
         WriteColored("Blue", ConsoleColor.Blue);
@@ -377,9 +462,8 @@ public static class Program
         WriteLineColored("────────────────────────────────────────────────", ConsoleColor.DarkGray);
         WriteLineColored("HP   = Health Points. Unit is defeated at 0.", ConsoleColor.Gray);
         WriteLineColored("ATK  = Attack. Base outgoing damage.", ConsoleColor.Gray);
-        WriteLineColored("DEF  = Defense. Reduces incoming damage.", ConsoleColor.Gray);
         WriteLineColored("MOVE = Max tiles a unit can move per turn.", ConsoleColor.Gray);
-        WriteLineColored("Damage formula: max(Attacker ATK - Defender DEF, 1).", ConsoleColor.DarkYellow);
+        WriteLineColored("Damage formula: damage = Attacker ATK.", ConsoleColor.DarkYellow);
         WriteLineColored("Combat range is melee (8-direction adjacent tiles only).", ConsoleColor.DarkYellow);
         WriteLineColored("Type HELP during the game to view this sheet again.", ConsoleColor.DarkCyan);
         System.Console.WriteLine();
@@ -388,8 +472,8 @@ public static class Program
     private static void RenderRulesReference(string player1Name, string player2Name)
     {
         WriteLineColored("Rules: Melee range only (8-direction adjacent tiles).", ConsoleColor.DarkYellow);
-        WriteLineColored("W - Warrior  HP:55   ATK:30  DEF:2  MOVE:2", ConsoleColor.Gray);
-        WriteLineColored("S - Scout    HP:40   ATK:24  DEF:1  MOVE:3", ConsoleColor.Gray);
+        WriteLineColored("W - Warrior  HP:55   ATK:24  MOVE:2", ConsoleColor.Gray);
+        WriteLineColored("S - Scout    HP:40   ATK:18  MOVE:3", ConsoleColor.Gray);
         System.Console.Write("Colors: ");
         WriteColored("Blue", ConsoleColor.Blue);
         System.Console.Write(" = ");
@@ -417,6 +501,34 @@ public static class Program
     {
         var first = unit.Name.FirstOrDefault(char.IsLetterOrDigit);
         return first == default ? '?' : char.ToUpperInvariant(first);
+    }
+
+    private static int GetAiAttackerPriority(Unit attacker)
+    {
+        var abbreviation = GetUnitAbbreviation(attacker);
+        return abbreviation switch
+        {
+            'S' => 0,
+            'W' => 1,
+            _ => 2
+        };
+    }
+
+    private static int GetUnitMovePriority(Unit unit, char preferredFirst, char preferredSecond)
+    {
+        var abbreviation = GetUnitAbbreviation(unit);
+        if (abbreviation == preferredFirst)
+            return 0;
+
+        if (abbreviation == preferredSecond)
+            return 1;
+
+        return 2;
+    }
+
+    private static int ChebyshevDistance(Position a, Position b)
+    {
+        return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
     }
 
     private static string ReadInputWithHelp(string prompt)

@@ -6,7 +6,7 @@ namespace TurnBasedGame.Domain.Services;
 
 /// <summary>
 /// Simple deterministic combat resolver.
-/// Damage = Attacker.Attack - Defender.Defense
+/// Damage = Attacker.Attack
 /// No randomness - makes testing easier and gameplay more predictable.
 /// </summary>
 public sealed class CombatResolver : ICombatResolver
@@ -27,11 +27,9 @@ public sealed class CombatResolver : ICombatResolver
             throw new ArgumentNullException(nameof(defender));
 
         var attackPower = attacker.Stats.AttackPower;
-        var defense = defender.Stats.Defense;
-        var damage = attackPower - defense;
 
         // Always deal at least minimum damage if attack goes through
-        return Math.Max(damage, MinimumDamage);
+        return Math.Max(attackPower, MinimumDamage);
     }
 
     /// <summary>

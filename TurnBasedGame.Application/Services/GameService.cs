@@ -76,7 +76,7 @@ public sealed class GameService
             var stats = new UnitStats(
                 command.MaxHealth,
                 command.AttackPower,
-                command.Defense,
+                0,
                 command.MovementRange);
 
             var unit = _game.PlaceUnit(player, command.UnitName, position, stats);

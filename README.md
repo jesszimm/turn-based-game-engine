@@ -6,15 +6,28 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 
 ## What The Game Does
 
-- 2-player tactical match on a grid.
+- Tactical match on a grid with either:
+  - Human vs Human
+  - Human vs AI
 - Each player starts with the same roster:
   - `W - Warrior` (frontline)
   - `S - Scout` (mobile flanker)
 - On a turn, a player selects one unit and performs one action:
   - unit selection uses abbreviations (`W`, `S`)
-  - `move`
+  - action selection uses abbreviations (`A`, `M`)
+  - `move` (arrow-key destination selection)
   - `attack` (melee adjacency, including diagonals)
 - Game ends when one side has no remaining units.
+
+## AI Behavior (Current)
+
+- AI controls Player 2 when enabled at game start.
+- AI attack policy:
+  - if both unit types can attack, prefer `Scout` over `Warrior`
+- AI movement policy:
+  - if no attack is available, alternate preferred mover each AI turn:
+    - `Warrior` turn, then `Scout` turn, then repeat
+  - if preferred unit cannot move, AI falls back to the other unit
 
 ## Why This Project Is Interesting
 
@@ -23,6 +36,7 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 - Console UX was intentionally iterated:
   - 1-indexed coordinates for human-friendly input
   - tactical-grid rendering
+  - arrow-key movement with live board cursor highlight
   - persistent on-screen rules and unit info
   - in-game `HELP` command to re-open rules
   - retry flow for invalid actions without auto-ending turns
@@ -89,4 +103,4 @@ All design decisions, code review, and final acceptance were directed by me.
 - Configurable maps and scenario presets
 - Additional unit classes
 - CI pipeline with automated build + tests
-- Optional AI opponent
+- Stronger tactical AI (lookahead/scoring) and difficulty settings
