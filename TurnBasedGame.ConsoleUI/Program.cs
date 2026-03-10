@@ -62,6 +62,7 @@ public static class Program
                 var currentPlayer = gameService.GetCurrentPlayer();
                 if (isPlayer2Ai && currentPlayer?.Id == game.Player2.Id)
                 {
+                    System.Threading.Thread.Sleep(2000);
                     ExecuteAiTurn(gameService, game, ref nextAiMoveUnitAbbreviation);
                     actionCompleted = true;
                     continue;

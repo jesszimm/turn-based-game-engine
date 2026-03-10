@@ -67,6 +67,19 @@ See layer-specific READMEs for detail:
 - `C#`
 - `xUnit`
 
+## Install .NET (If You Don’t Have It)
+
+You need the .NET SDK (not just the runtime). Install steps:
+
+1. Download and install the .NET SDK for your OS:
+```
+https://dotnet.microsoft.com/download
+```
+2. Verify the install:
+```bash
+dotnet --version
+```
+
 ## Run The Game
 
 ```bash
