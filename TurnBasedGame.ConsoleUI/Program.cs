@@ -80,12 +80,6 @@ public static class Program
                     action,
                     player1Name,
                     player2Name);
-
-                if (!actionCompleted)
-                {
-                    WriteLineColored("Try again. Press Enter to continue.", ConsoleColor.Yellow);
-                    System.Console.ReadLine();
-                }
             }
 
             if (gameService.IsGameOver())
@@ -98,8 +92,6 @@ public static class Program
                 break;
             }
 
-            WriteLineColored("Turn ended. Press Enter to continue.", ConsoleColor.DarkCyan);
-            System.Console.ReadLine();
         }
 
         renderer.Clear();
@@ -166,6 +158,7 @@ public static class Program
         var currentPlayerColor = currentPlayer?.Id == game.Player1.Id ? ConsoleColor.Blue : ConsoleColor.Red;
         WriteLineColored(currentPlayer?.Name ?? "Unknown", currentPlayerColor);
         RenderRulesReference(player1Name, player2Name);
+        RenderUnitStatus(game, player1Name, player2Name);
         System.Console.WriteLine();
     }
 
@@ -471,9 +464,9 @@ public static class Program
 
     private static void RenderRulesReference(string player1Name, string player2Name)
     {
-        WriteLineColored("Rules: Melee range only (8-direction adjacent tiles).", ConsoleColor.DarkYellow);
-        WriteLineColored("W - Warrior  HP:55   ATK:24  MOVE:2", ConsoleColor.Gray);
-        WriteLineColored("S - Scout    HP:40   ATK:18  MOVE:3", ConsoleColor.Gray);
+        WriteLineColored(
+            "Rules: Can only attack if opponent's piece is adjacent to attacker (including diagonals)",
+            ConsoleColor.DarkYellow);
         System.Console.Write("Colors: ");
         WriteColored("Blue", ConsoleColor.Blue);
         System.Console.Write(" = ");
@@ -486,15 +479,36 @@ public static class Program
         WriteLineColored("Type HELP to review full rules.", ConsoleColor.DarkCyan);
     }
 
+    private static void RenderUnitStatus(Game game, string player1Name, string player2Name)
+    {
+        WriteColored("Blue - ", ConsoleColor.Blue);
+        WriteColored(player1Name, ConsoleColor.Blue);
+        System.Console.WriteLine();
+        foreach (var unit in game.Board.GetPlayerUnits(game.Player1.Id).OrderBy(u => u.Name))
+        {
+            System.Console.WriteLine(
+                $"  {unit.Name,-8} HP:{unit.Stats.CurrentHealth} ATK:{unit.Stats.AttackPower} MOVE:{unit.Stats.MovementRange}");
+        }
+
+        WriteColored("Red - ", ConsoleColor.Red);
+        WriteColored(player2Name, ConsoleColor.Red);
+        System.Console.WriteLine();
+        foreach (var unit in game.Board.GetPlayerUnits(game.Player2.Id).OrderBy(u => u.Name))
+        {
+            System.Console.WriteLine(
+                $"  {unit.Name,-8} HP:{unit.Stats.CurrentHealth} ATK:{unit.Stats.AttackPower} MOVE:{unit.Stats.MovementRange}");
+        }
+    }
+
     private static string FormatUnitLine(string displayLabel, Unit unit)
     {
         var x = unit.Position.X + 1;
         var y = unit.Position.Y + 1;
         var abbreviation = GetUnitAbbreviation(unit);
         if (string.Equals(displayLabel, abbreviation.ToString(), StringComparison.OrdinalIgnoreCase))
-            return $"[{displayLabel}] - {unit.Name,-8} HP:{unit.Stats.CurrentHealth,-3} Pos:({x},{y})";
+            return $"[{displayLabel}] - {unit.Name,-8}";
 
-        return $"[{displayLabel}] {abbreviation} - {unit.Name,-8} HP:{unit.Stats.CurrentHealth,-3} Pos:({x},{y})";
+        return $"[{displayLabel}] {abbreviation} - {unit.Name,-8}";
     }
 
     private static char GetUnitAbbreviation(Unit unit)
