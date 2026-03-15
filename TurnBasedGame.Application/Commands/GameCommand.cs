@@ -103,6 +103,11 @@ public sealed record CreateGameCommand
     /// Optional board height (defaults to 5).
     /// </summary>
     public int BoardHeight { get; init; } = 5;
+
+    /// <summary>
+    /// Enables the control tile win condition.
+    /// </summary>
+    public bool ControlTileEnabled { get; init; } = false;
 }
 
 /// <summary>

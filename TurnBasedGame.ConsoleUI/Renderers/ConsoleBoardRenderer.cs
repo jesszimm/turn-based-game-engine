@@ -25,13 +25,16 @@ public sealed class ConsoleBoardRenderer
         string player1Name,
         Guid player2Id,
         string player2Name,
-        Position? highlightedPosition = null)
+        Position? highlightedPosition = null,
+        bool showControlTile = false)
     {
         if (board == null)
             throw new ArgumentNullException(nameof(board));
 
         var yLabelWidth = Math.Max(2, board.Height.ToString().Length);
         var borderPadding = new string(' ', yLabelWidth + 1);
+        var controlX = board.Width / 2;
+        var controlY = board.Height / 2;
 
         // X-axis tick labels, centered over each column cell.
         System.Console.Write(borderPadding);
@@ -61,13 +64,16 @@ public sealed class ConsoleBoardRenderer
                     highlightedPosition != null &&
                     highlightedPosition.X == x &&
                     highlightedPosition.Y == y;
+                var isControlTile = showControlTile && x == controlX && y == controlY;
 
                 char symbol;
                 if (unit == null)
                 {
-                    symbol = '.';
+                    symbol = isControlTile ? 'C' : '.';
                     if (isHighlighted)
-                        WriteHighlightedCell(symbol, ConsoleColor.Yellow, ConsoleColor.DarkBlue);
+                        WriteHighlightedCell(symbol, isControlTile ? ConsoleColor.Green : ConsoleColor.Yellow, ConsoleColor.DarkBlue);
+                    else if (isControlTile)
+                        WriteColoredCell(symbol, ConsoleColor.Green);
                     else
                         System.Console.Write($" {symbol} |");
                 }
@@ -122,6 +128,12 @@ public sealed class ConsoleBoardRenderer
         System.Console.Write(" = ");
         WriteColored(player2Name, ConsoleColor.Red);
         System.Console.WriteLine();
+        if (showControlTile)
+        {
+            System.Console.Write("        ");
+            WriteColored("Green", ConsoleColor.Green);
+            System.Console.WriteLine(" = Control tile");
+        }
         System.Console.WriteLine();
     }
 
@@ -153,6 +165,16 @@ public sealed class ConsoleBoardRenderer
         System.Console.ForegroundColor = previousForeground;
         System.Console.BackgroundColor = previousBackground;
         System.Console.Write("|");
+    }
+
+    private static void WriteColoredCell(char symbol, ConsoleColor color)
+    {
+        System.Console.Write(" ");
+        var previousColor = System.Console.ForegroundColor;
+        System.Console.ForegroundColor = color;
+        System.Console.Write(symbol);
+        System.Console.ForegroundColor = previousColor;
+        System.Console.Write(" |");
     }
 
     private static void WriteColored(string text, ConsoleColor color)

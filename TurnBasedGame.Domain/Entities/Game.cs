@@ -10,14 +10,19 @@ namespace TurnBasedGame.Domain.Entities;
 /// </summary>
 public sealed class Game
 {
+    private const int ControlTurnsToWin = 5;
     private readonly ICombatResolver _combatResolver;
     private readonly GameBoard _board;
     private readonly Player _player1;
     private readonly Player _player2;
+    private readonly bool _controlTileEnabled;
     private Player _currentPlayer;
     private int _turnNumber;
     private bool _hasMovedThisTurn;
     private bool _hasAttackedThisTurn;
+    private readonly Position _controlPosition;
+    private int _player1ControlTurns;
+    private int _player2ControlTurns;
 
     /// <summary>
     /// The game board.
@@ -45,6 +50,33 @@ public sealed class Game
     public int TurnNumber => _turnNumber;
 
     /// <summary>
+    /// The control tile position (center of the board).
+    /// </summary>
+    public Position ControlPosition => _controlPosition;
+
+    /// <summary>
+    /// Whether the control tile win condition is enabled.
+    /// </summary>
+    public bool ControlTileEnabled => _controlTileEnabled;
+
+    /// <summary>
+    /// Gets the current control-tile streak for a given player.
+    /// Returns 0 if control tiles are disabled.
+    /// </summary>
+    public int GetControlTurnsForPlayer(Guid playerId)
+    {
+        if (!_controlTileEnabled)
+            return 0;
+
+        if (playerId == _player1.Id)
+            return _player1ControlTurns;
+        if (playerId == _player2.Id)
+            return _player2ControlTurns;
+
+        return 0;
+    }
+
+    /// <summary>
     /// Indicates whether the current player has moved a unit this turn.
     /// </summary>
     public bool HasMovedThisTurn => _hasMovedThisTurn;
@@ -66,7 +98,7 @@ public sealed class Game
     /// <param name="player2Name">Name of player 2.</param>
     /// <param name="combatResolver">Combat resolver for damage calculation.</param>
     public Game(string player1Name, string player2Name, ICombatResolver combatResolver)
-        : this(player1Name, player2Name, combatResolver, new GameBoard(5, 5))
+        : this(player1Name, player2Name, combatResolver, new GameBoard(5, 5), false)
     {
     }
 
@@ -77,7 +109,12 @@ public sealed class Game
     /// <param name="player2Name">Name of player 2.</param>
     /// <param name="combatResolver">Combat resolver for damage calculation.</param>
     /// <param name="board">The game board to use.</param>
-    public Game(string player1Name, string player2Name, ICombatResolver combatResolver, GameBoard board)
+    public Game(
+        string player1Name,
+        string player2Name,
+        ICombatResolver combatResolver,
+        GameBoard board,
+        bool controlTileEnabled)
     {
         if (string.IsNullOrWhiteSpace(player1Name))
             throw new ArgumentException("Player 1 name cannot be empty", nameof(player1Name));
@@ -93,6 +130,10 @@ public sealed class Game
         _turnNumber = 1;
         _hasMovedThisTurn = false;
         _hasAttackedThisTurn = false;
+        _controlPosition = new Position(_board.Width / 2, _board.Height / 2);
+        _controlTileEnabled = controlTileEnabled;
+        _player1ControlTurns = 0;
+        _player2ControlTurns = 0;
     }
 
     /// <summary>
@@ -238,6 +279,9 @@ public sealed class Game
         if (IsGameOver)
             throw new InvalidOperationException("Game is over");
 
+        if (_controlTileEnabled)
+            UpdateControlCounter();
+
         // Switch player
         _currentPlayer = _currentPlayer.Id == _player1.Id ? _player2 : _player1;
 
@@ -273,6 +317,14 @@ public sealed class Game
     /// <returns>The winning player, or null if the game is not over.</returns>
     public Player? GetWinner()
     {
+        if (_controlTileEnabled)
+        {
+            if (_player1ControlTurns >= ControlTurnsToWin)
+                return _player1;
+            if (_player2ControlTurns >= ControlTurnsToWin)
+                return _player2;
+        }
+
         var player1HasUnits = GetPlayer1Units().Any();
         var player2HasUnits = GetPlayer2Units().Any();
 
@@ -294,6 +346,17 @@ public sealed class Game
 
         // Game is still ongoing
         return null;
+    }
+
+    private void UpdateControlCounter()
+    {
+        var unitOnControl = _board.GetUnitAtPosition(_controlPosition);
+        var currentPlayerControls = unitOnControl != null && unitOnControl.OwnerId == _currentPlayer.Id;
+
+        if (_currentPlayer.Id == _player1.Id)
+            _player1ControlTurns = currentPlayerControls ? _player1ControlTurns + 1 : 0;
+        else
+            _player2ControlTurns = currentPlayerControls ? _player2ControlTurns + 1 : 0;
     }
 
     /// <summary>

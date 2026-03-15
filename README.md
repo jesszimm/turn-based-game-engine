@@ -18,6 +18,8 @@ This project is designed as a portfolio example for recruiters and hiring teams:
   - `move` (arrow-key destination selection)
   - `attack` (melee adjacency, including diagonals)
 - Game ends when one side has no remaining units.
+- Control tile win: hold the green center tile for 5 turns to win.
+- Control tile only appears on Hard AI.
 
 ## AI Behavior (Current)
 

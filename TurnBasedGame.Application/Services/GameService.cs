@@ -39,7 +39,12 @@ public sealed class GameService
             var combatResolver = new CombatResolver();
             var board = new GameBoard(command.BoardWidth, command.BoardHeight);
 
-            _game = new Game(command.Player1Name, command.Player2Name, combatResolver, board);
+            _game = new Game(
+                command.Player1Name,
+                command.Player2Name,
+                combatResolver,
+                board,
+                command.ControlTileEnabled);
 
             return Result.Success();
         }
