@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TurnBasedGame.Application\TurnBasedGame.Application.csproj" />
     <ProjectReference Include="..\TurnBasedGame.Domain\TurnBasedGame.Domain.csproj" />
+    <ProjectReference Include="..\TurnBasedGame.ConsoleUI\TurnBasedGame.ConsoleUI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -445,115 +445,55 @@ public static class Program
         ref char nextAiMoveUnitAbbreviation,
         ref Guid? focusTargetId)
     {
-        var aiUnits = gameService.GetCurrentPlayerUnits().Where(u => u.IsAlive).ToList();
-        var enemyUnits = gameService.GetOpponentUnits().Where(u => u.IsAlive).ToList();
-        if (aiUnits.Count == 0 || enemyUnits.Count == 0)
+        var aiDecisionService = new AiDecisionService();
+        var decisionState = new AiDecisionState(
+            game,
+            difficulty,
+            nextAiMoveUnitAbbreviation,
+            focusTargetId);
+
+        var decision = aiDecisionService.Decide(decisionState);
+        focusTargetId = decisionState.FocusTargetId;
+
+        if (decision.ActionType == AiDecisionAction.Skip)
         {
             WriteLineColored("CPU had no valid attack or move and skipped action.", ConsoleColor.Yellow);
             return;
         }
 
-        focusTargetId = UpdateFocusTarget(focusTargetId, enemyUnits);
-
-        var attackOptions = (
-            from attacker in aiUnits
-            from defender in enemyUnits
-            where attacker.Position.IsAdjacentTo(defender.Position, includeDiagonals: true)
-            select new
-            {
-                Attacker = attacker,
-                Defender = defender,
-                DefenderOnControl = _controlTileEnabled &&
-                                    difficulty == AiDifficulty.Hard &&
-                                    defender.Position.Equals(game.ControlPosition),
-                IsKill = defender.Stats.CurrentHealth <= attacker.Stats.AttackPower,
-                AttackerPriority = GetAiAttackerPriority(attacker, difficulty),
-                DefenderHealth = defender.Stats.CurrentHealth
-            }).ToList();
-
-        var killOptions = attackOptions.Where(option => option.IsKill).ToList();
-        if (difficulty == AiDifficulty.Hard)
+        if (decision.ActionType == AiDecisionAction.Attack)
         {
-            var opponentId = game.Player1.Id == gameService.GetCurrentPlayer()!.Id
-                ? game.Player2.Id
-                : game.Player1.Id;
-            var opponentControlTurns = game.GetControlTurnsForPlayer(opponentId);
-
-            if (opponentControlTurns < 2)
+            var attacker = game.Board.FindUnit(decision.UnitId);
+            var defender = decision.TargetId == null ? null : game.Board.FindUnit(decision.TargetId.Value);
+            if (attacker != null && defender != null)
             {
-                killOptions = killOptions
-                    .Where(option => !IsGuaranteedDeath(option.Attacker, option.Defender, enemyUnits))
-                    .ToList();
-            }
-        }
-
-        if (killOptions.Count > 0)
-        {
-            var killChoice = killOptions
-                .OrderBy(option => option.AttackerPriority)
-                .ThenBy(option => option.DefenderHealth)
-                .First();
-
-            var attack = gameService.AttackUnit(new AttackUnitCommand(killChoice.Attacker.Id, killChoice.Defender.Id));
-            if (attack.IsSuccess)
-            {
-                WriteLineColored(
-                    $"CPU used {killChoice.Attacker.Name} and attacked {killChoice.Defender.Name} for {attack.Value} damage.",
-                    ConsoleColor.Green);
-                return;
-            }
-        }
-
-        if (attackOptions.Count > 0)
-        {
-            var orderedAttacks = attackOptions
-                .OrderByDescending(option => option.DefenderOnControl)
-                .ThenBy(option => option.AttackerPriority)
-                .ThenBy(option => difficulty == AiDifficulty.Medium ? option.DefenderHealth : 0)
-                .ThenBy(option => option.DefenderHealth)
-                .ToList();
-
-            foreach (var option in orderedAttacks)
-            {
-                var attack = gameService.AttackUnit(new AttackUnitCommand(option.Attacker.Id, option.Defender.Id));
+                var attack = gameService.AttackUnit(new AttackUnitCommand(attacker.Id, defender.Id));
                 if (attack.IsSuccess)
                 {
                     WriteLineColored(
-                        $"CPU used {option.Attacker.Name} and attacked {option.Defender.Name} for {attack.Value} damage.",
+                        $"CPU used {attacker.Name} and attacked {defender.Name} for {attack.Value} damage.",
                         ConsoleColor.Green);
                     return;
                 }
             }
         }
 
-        if (difficulty == AiDifficulty.Hard)
+        if (decision.ActionType == AiDecisionAction.Move)
         {
-            var retreatMove = TryFindRetreatMove(game, aiUnits, enemyUnits, out var retreatUnit, out var retreatPosition);
-            if (retreatMove)
+            var unit = game.Board.FindUnit(decision.UnitId);
+            var position = decision.TargetPosition;
+            if (unit != null && position != null)
             {
-                var move = gameService.MoveUnit(new MoveUnitCommand(retreatUnit.Id, retreatPosition.X, retreatPosition.Y));
+                var move = gameService.MoveUnit(new MoveUnitCommand(unit.Id, position.X, position.Y));
                 if (move.IsSuccess)
                 {
                     WriteLineColored(
-                        $"CPU moved {retreatUnit.Name} to ({retreatPosition.X + 1}, {retreatPosition.Y + 1}).",
+                        $"CPU moved {unit.Name} to ({position.X + 1}, {position.Y + 1}).",
                         ConsoleColor.Green);
+                    if (difficulty == AiDifficulty.Easy)
+                        nextAiMoveUnitAbbreviation = nextAiMoveUnitAbbreviation == 'W' ? 'S' : 'W';
                     return;
                 }
-            }
-        }
-
-        var bestMoveFound = TrySelectMove(game, aiUnits, enemyUnits, difficulty, nextAiMoveUnitAbbreviation, focusTargetId, out var chosenUnit, out var chosenPosition);
-        if (bestMoveFound)
-        {
-            var move = gameService.MoveUnit(new MoveUnitCommand(chosenUnit.Id, chosenPosition.X, chosenPosition.Y));
-            if (move.IsSuccess)
-            {
-                WriteLineColored(
-                    $"CPU moved {chosenUnit.Name} to ({chosenPosition.X + 1}, {chosenPosition.Y + 1}).",
-                    ConsoleColor.Green);
-                if (difficulty == AiDifficulty.Easy)
-                    nextAiMoveUnitAbbreviation = nextAiMoveUnitAbbreviation == 'W' ? 'S' : 'W';
-                return;
             }
         }
 
@@ -719,186 +659,6 @@ public static class Program
         return first == default ? '?' : char.ToUpperInvariant(first);
     }
 
-    private static int GetAiAttackerPriority(Unit attacker, AiDifficulty difficulty)
-    {
-        var abbreviation = GetUnitAbbreviation(attacker);
-        return (difficulty, abbreviation) switch
-        {
-            (AiDifficulty.Easy, 'S') => 0,
-            (AiDifficulty.Easy, 'W') => 1,
-            (AiDifficulty.Medium, 'W') => 0,
-            (AiDifficulty.Medium, 'S') => 1,
-            (AiDifficulty.Hard, 'W') => 0,
-            (AiDifficulty.Hard, 'S') => 1,
-            _ => 2
-        };
-    }
-
-    private static int GetUnitMovePriority(Unit unit, char preferredFirst, char preferredSecond)
-    {
-        var abbreviation = GetUnitAbbreviation(unit);
-        if (abbreviation == preferredFirst)
-            return 0;
-
-        if (abbreviation == preferredSecond)
-            return 1;
-
-        return 2;
-    }
-
-    private static int ChebyshevDistance(Position a, Position b)
-    {
-        return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
-    }
-
-    private static Guid? UpdateFocusTarget(Guid? currentFocus, List<Unit> enemyUnits)
-    {
-        if (currentFocus != null && enemyUnits.Any(unit => unit.Id == currentFocus))
-            return currentFocus;
-
-        return enemyUnits.OrderBy(unit => unit.Stats.CurrentHealth).FirstOrDefault()?.Id;
-    }
-
-    private static bool IsGuaranteedDeath(Unit attacker, Unit target, List<Unit> enemies)
-    {
-        var attackerHp = attacker.Stats.CurrentHealth;
-        return enemies
-            .Where(enemy => enemy.Id != target.Id)
-            .Any(enemy =>
-                enemy.Position.IsAdjacentTo(attacker.Position, includeDiagonals: true) &&
-                enemy.Stats.AttackPower >= attackerHp);
-    }
-
-    private static bool TryFindRetreatMove(
-        Game game,
-        List<Unit> aiUnits,
-        List<Unit> enemyUnits,
-        out Unit retreatUnit,
-        out Position retreatPosition)
-    {
-        retreatUnit = aiUnits[0];
-        retreatPosition = retreatUnit.Position;
-        var retreatFound = false;
-        var bestDistance = -1;
-
-        foreach (var unit in aiUnits)
-        {
-            if (!enemyUnits.Any(enemy =>
-                    enemy.Position.IsAdjacentTo(unit.Position, includeDiagonals: true) &&
-                    enemy.Stats.AttackPower >= unit.Stats.CurrentHealth))
-                continue;
-
-            var validMoves = game.Board.GetValidMovePositions(unit).ToList();
-            foreach (var move in validMoves)
-            {
-                var distance = enemyUnits
-                    .Select(enemy => ChebyshevDistance(move, enemy.Position))
-                    .DefaultIfEmpty(int.MinValue)
-                    .Min();
-
-                if (distance > bestDistance)
-                {
-                    bestDistance = distance;
-                    retreatUnit = unit;
-                    retreatPosition = move;
-                    retreatFound = true;
-                }
-            }
-        }
-
-        return retreatFound;
-    }
-
-    private static bool TrySelectMove(
-        Game game,
-        List<Unit> aiUnits,
-        List<Unit> enemyUnits,
-        AiDifficulty difficulty,
-        char nextAiMoveUnitAbbreviation,
-        Guid? focusTargetId,
-        out Unit chosenUnit,
-        out Position chosenPosition)
-    {
-        chosenUnit = aiUnits[0];
-        chosenPosition = chosenUnit.Position;
-        var bestScore = int.MinValue;
-
-        var preferredFirst = nextAiMoveUnitAbbreviation;
-        var preferredSecond = preferredFirst == 'W' ? 'S' : 'W';
-
-        foreach (var unit in aiUnits)
-        {
-            var validMoves = game.Board.GetValidMovePositions(unit).ToList();
-            foreach (var move in validMoves)
-            {
-                if (difficulty == AiDifficulty.Hard && !IsMoveSafeHard(unit, move, enemyUnits))
-                    continue;
-
-                var score = ScoreMove(unit, move, enemyUnits, difficulty, preferredFirst, preferredSecond, focusTargetId);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    chosenUnit = unit;
-                    chosenPosition = move;
-                }
-            }
-        }
-
-        return bestScore != int.MinValue;
-    }
-
-    private static bool IsMoveSafeHard(Unit unit, Position move, List<Unit> enemyUnits)
-    {
-        foreach (var enemy in enemyUnits)
-        {
-            if (!enemy.Position.IsAdjacentTo(move, includeDiagonals: true))
-                continue;
-
-            var hpAfterAttack = unit.Stats.CurrentHealth - enemy.Stats.AttackPower;
-            if (hpAfterAttack <= enemy.Stats.CurrentHealth)
-                return false;
-        }
-
-        return true;
-    }
-
-    private static int ScoreMove(
-        Unit unit,
-        Position move,
-        List<Unit> enemyUnits,
-        AiDifficulty difficulty,
-        char preferredFirst,
-        char preferredSecond,
-        Guid? focusTargetId)
-    {
-        var minDistance = enemyUnits
-            .Select(enemy => ChebyshevDistance(move, enemy.Position))
-            .DefaultIfEmpty(int.MaxValue)
-            .Min();
-
-        var focusDistance = enemyUnits
-            .Where(enemy => enemy.Id == focusTargetId)
-            .Select(enemy => ChebyshevDistance(move, enemy.Position))
-            .DefaultIfEmpty(minDistance)
-            .Min();
-
-        var unitPreference = GetUnitMovePriority(unit, preferredFirst, preferredSecond);
-
-        return difficulty switch
-        {
-            AiDifficulty.Easy => -minDistance * 10 - unitPreference,
-            AiDifficulty.Medium => (-minDistance * 10) - (unitPreference * 2) - focusDistance,
-            AiDifficulty.Hard => (-minDistance * 8) - (focusDistance * 4) - (unitPreference * 2),
-            _ => -minDistance * 10
-        };
-    }
-
-    private enum AiDifficulty
-    {
-        Easy,
-        Medium,
-        Hard
-    }
 
     private static string ReadInputWithHelp(string prompt)
     {
