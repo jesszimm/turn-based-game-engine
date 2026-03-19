@@ -1,0 +1,11 @@
+@backend_HostAddress = http://localhost:5187
+
+POST {{backend_HostAddress}}/api/game/create
+Accept: application/json
+
+###
+
+@gameId = REPLACE_WITH_GAME_ID
+
+GET {{backend_HostAddress}}/api/game/{{gameId}}
+Accept: application/json
