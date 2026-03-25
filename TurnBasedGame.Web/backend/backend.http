@@ -9,3 +9,24 @@ Accept: application/json
 
 GET {{backend_HostAddress}}/api/game/{{gameId}}
 Accept: application/json
+
+###
+
+POST {{backend_HostAddress}}/api/game/{{gameId}}/move
+Content-Type: application/json
+
+{
+  "unitId": "REPLACE_WITH_UNIT_ID",
+  "x": 1,
+  "y": 0
+}
+
+###
+
+POST {{backend_HostAddress}}/api/game/{{gameId}}/attack
+Content-Type: application/json
+
+{
+  "attackerId": "REPLACE_WITH_ATTACKER_ID",
+  "targetId": "REPLACE_WITH_TARGET_ID"
+}

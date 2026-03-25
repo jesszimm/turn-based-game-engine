@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\TurnBasedGame.Domain\TurnBasedGame.Domain.csproj" />
+    <ProjectReference Include="..\..\TurnBasedGame.Application\TurnBasedGame.Application.csproj" />
   </ItemGroup>
 
 </Project>
