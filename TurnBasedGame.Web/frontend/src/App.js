@@ -16,6 +16,7 @@ function App() {
   const [aiName, setAiName] = useState('CPU');
   const boardSize = 5;
   const gameStateRef = useRef(gameState);
+  const hasInitialized = useRef(false);
 
   const fetchGameState = useCallback(async (id) => {
     const stateResponse = await getGame(id);
@@ -48,6 +49,8 @@ function App() {
   }, [gameState]);
 
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
     let isActive = true;
 
     async function loadGame() {
