@@ -4,6 +4,16 @@
   color: #1b1b1b;
 }
 
+.PageTitle {
+  text-align: center;
+  font-size: 32px;
+  letter-spacing: 2px;
+  margin: 4px 0 12px;
+  text-transform: uppercase;
+  color: #3a2f24;
+  text-shadow: 1px 1px 0 #f1e6d3;
+}
+
 .Board {
   display: grid;
   grid-template-columns: repeat(5, 64px);
@@ -21,6 +31,21 @@
   position: relative;
   width: max-content;
   margin: 0 auto;
+}
+
+.GameLayout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.BoardColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .BoardOverlay {
@@ -105,19 +130,102 @@
 }
 
 .Legend {
-  max-width: 480px;
-  margin: 0 auto;
+  max-width: 360px;
+  margin: 0;
   text-align: left;
 }
 
-.Legend ul {
-  padding-left: 18px;
+.Legend h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.LegendList {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 10px;
 }
 
 .LegendKey {
   margin: 6px 0 10px;
   font-size: 13px;
   color: #4b4b4b;
+}
+
+.LegendItem {
+  background: #f7f1e7;
+  border: 1px solid #e2d3bd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.LegendItem-ai {
+  background: #f6ecec;
+  border-color: #e2c1bd;
+}
+
+.LegendTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.LegendOwner {
+  color: #2f5d50;
+}
+
+.LegendItem-ai .LegendOwner {
+  color: #6b2f2f;
+}
+
+.LegendUnit {
+  color: #3a3a3a;
+}
+
+.LegendStats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.StatPill {
+  background: #ffffff;
+  border: 1px solid #d1c2ad;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a3a3a;
+}
+
+.LegendItem-ai .StatPill {
+  border-color: #d8b4b0;
+}
+
+.Rules {
+  max-width: 320px;
+  margin: 0;
+  text-align: left;
+  background: #fffaf2;
+  border: 1px solid #e2d3bd;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.Rules h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.Rules ul {
+  margin: 0;
+  padding-left: 18px;
 }
 
 .NameRow {

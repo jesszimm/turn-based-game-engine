@@ -187,7 +187,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>TurnBasedGame</h1>
+      <h1 className="PageTitle">Tactical Squares</h1>
       <div className="NameRow">
         <label className="NameField">
           Your name
@@ -228,56 +228,87 @@ function App() {
       {!gameState && <p>Loading game state...</p>}
       {gameState && (
         <>
-          <div className="BoardWrapper">
-            {isLoadingGame && <div className="BoardOverlay">Loading...</div>}
-            <div className="Board" role="grid" aria-label="Game board">
-            {Array.from({ length: boardSize * boardSize }, (_, index) => {
-              const x = index % boardSize;
-              const y = Math.floor(index / boardSize);
-              const unit = liveUnits.find((u) => u.x === x && u.y === y);
-              const isValidMove = validMoveSet.has(`${x},${y}`);
-              const isPlayerUnit = unit?.owner === PLAYER_1;
-              return (
-                <button
-                  type="button"
-                  key={`${x}-${y}`}
-                  className={`Cell ${isValidMove ? 'Cell-valid' : ''}`}
-                  role="gridcell"
-                  onClick={() => handleCellClick(x, y, unit)}
-                  disabled={isGameOver}
-                >
-                  {unit ? (
-                    <div className={`Unit ${isPlayerUnit ? 'Unit-player' : 'Unit-ai'} ${unit.id === selectedUnitId ? 'Unit-selected' : ''}`}>
-                      <div className="Unit-label">{unit.name ? unit.name[0].toUpperCase() : 'U'}</div>
-                      <div className="Unit-hp">HP {unit.health}</div>
-                    </div>
-                  ) : (
-                    <div className="Cell-empty" />
-                  )}
-                </button>
-              );
-            })}
+          <div className="GameLayout">
+            <div className="Rules">
+              <h2>How to Play</h2>
+              <ul>
+                <li>On your turn, click one of your units to select it.</li>
+                <li>Blue-highlighted tiles show where the selected unit can move.</li>
+                <li>Click an empty highlighted tile to move, then your turn ends.</li>
+                <li>To attack, click an enemy unit that is adjacent (including diagonals).</li>
+                <li>Each unit can either move or attack during a turn.</li>
+                <li>When all units for one side are defeated, the other side wins.</li>
+              </ul>
             </div>
-          </div>
-          <div className="Legend">
-            <h2>{playerName || PLAYER_1} vs {aiName || 'CPU'}</h2>
-            <p className="LegendKey">W = Warrior, S = Scout</p>
-            <ul>
-              {liveUnits
-                .filter((unit) => unit.owner === PLAYER_1)
-                .map((unit, index) => (
-                  <li key={unit.id}>
-                    {playerName || PLAYER_1} {unit.name} {index + 1}: HP {unit.health} ATK {unit.attackPower} MOVE {unit.movementRange}
-                  </li>
-                ))}
-              {liveUnits
-                .filter((unit) => unit.owner === PLAYER_2)
-                .map((unit, index) => (
-                  <li key={unit.id}>
-                    {aiName || 'CPU'} {unit.name} {index + 1}: HP {unit.health} ATK {unit.attackPower} MOVE {unit.movementRange}
-                  </li>
-                ))}
-            </ul>
+            <div className="BoardColumn">
+              <div className="BoardWrapper">
+                {isLoadingGame && <div className="BoardOverlay">Loading...</div>}
+                <div className="Board" role="grid" aria-label="Game board">
+                {Array.from({ length: boardSize * boardSize }, (_, index) => {
+                  const x = index % boardSize;
+                  const y = Math.floor(index / boardSize);
+                  const unit = liveUnits.find((u) => u.x === x && u.y === y);
+                  const isValidMove = validMoveSet.has(`${x},${y}`);
+                  const isPlayerUnit = unit?.owner === PLAYER_1;
+                  return (
+                    <button
+                      type="button"
+                      key={`${x}-${y}`}
+                      className={`Cell ${isValidMove ? 'Cell-valid' : ''}`}
+                      role="gridcell"
+                      onClick={() => handleCellClick(x, y, unit)}
+                      disabled={isGameOver}
+                    >
+                      {unit ? (
+                        <div className={`Unit ${isPlayerUnit ? 'Unit-player' : 'Unit-ai'} ${unit.id === selectedUnitId ? 'Unit-selected' : ''}`}>
+                          <div className="Unit-label">{unit.name ? unit.name[0].toUpperCase() : 'U'}</div>
+                          <div className="Unit-hp">HP {unit.health}</div>
+                        </div>
+                      ) : (
+                        <div className="Cell-empty" />
+                      )}
+                    </button>
+                  );
+                })}
+                </div>
+              </div>
+            </div>
+            <div className="Legend">
+              <h2>{playerName || PLAYER_1} vs {aiName || 'CPU'}</h2>
+              <p className="LegendKey">W = Warrior, S = Scout</p>
+              <ul className="LegendList">
+                {liveUnits
+                  .filter((unit) => unit.owner === PLAYER_1)
+                  .map((unit) => (
+                    <li key={unit.id} className="LegendItem">
+                      <div className="LegendTitle">
+                        <span className="LegendOwner">{playerName || PLAYER_1}</span>
+                        <span className="LegendUnit">{unit.name}</span>
+                      </div>
+                      <div className="LegendStats">
+                        <span className="StatPill">HP {unit.health}</span>
+                        <span className="StatPill">ATK {unit.attackPower}</span>
+                        <span className="StatPill">MOVE {unit.movementRange}</span>
+                      </div>
+                    </li>
+                  ))}
+                {liveUnits
+                  .filter((unit) => unit.owner === PLAYER_2)
+                  .map((unit) => (
+                    <li key={unit.id} className="LegendItem LegendItem-ai">
+                      <div className="LegendTitle">
+                        <span className="LegendOwner">{aiName || 'CPU'}</span>
+                        <span className="LegendUnit">{unit.name}</span>
+                      </div>
+                      <div className="LegendStats">
+                        <span className="StatPill">HP {unit.health}</span>
+                        <span className="StatPill">ATK {unit.attackPower}</span>
+                        <span className="StatPill">MOVE {unit.movementRange}</span>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            </div>
           </div>
         </>
       )}

@@ -21,7 +21,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("LocalhostFrontend");
+app.UseCors(policy =>
+    policy.AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 
 app.MapControllers();
 
