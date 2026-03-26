@@ -6,9 +6,9 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("LocalhostFrontend", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -28,4 +28,5 @@ app.UseCors(policy =>
 
 app.MapControllers();
 
-app.Run();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://0.0.0.0:{port}");
