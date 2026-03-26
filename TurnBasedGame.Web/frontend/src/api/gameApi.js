@@ -1,7 +1,7 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5187';
+const API_BASE = "https://turnbasedgame-api.onrender.com";
 
 async function requestJson(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  const response = await fetch(`${API_BASE}${path}`, options);
   return response;
 }
 
