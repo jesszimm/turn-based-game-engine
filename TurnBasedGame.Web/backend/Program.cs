@@ -2,7 +2,8 @@ using TurnBasedGame.Web.Backend.Stores;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(TurnBasedGame.Web.Backend.Controllers.GameController).Assembly);
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddCors(options =>
 {
