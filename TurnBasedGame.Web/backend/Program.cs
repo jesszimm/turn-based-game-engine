@@ -26,6 +26,8 @@ app.UseCors(policy =>
         .AllowAnyHeader()
         .AllowAnyMethod());
 
+app.MapGet("/", () => "API is running");
+
 app.MapControllers();
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
