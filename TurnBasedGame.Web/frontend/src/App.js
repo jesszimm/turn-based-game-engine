@@ -155,8 +155,14 @@ function App() {
   const liveUnits = units.filter((unit) => unit.health > 0);
   const hasPlayerUnits = liveUnits.some((unit) => unit.owner === PLAYER_1);
   const hasAiUnits = liveUnits.some((unit) => unit.owner === PLAYER_2);
-  const isGameOver = Boolean(gameState) && (!hasPlayerUnits || !hasAiUnits);
-  const winnerLabel = hasPlayerUnits ? (playerName || PLAYER_1) : (aiName || 'CPU');
+  const fallbackGameOver = Boolean(gameState) && (!hasPlayerUnits || !hasAiUnits);
+  const isGameOver = gameState?.isGameOver ?? fallbackGameOver;
+  const winnerLabel = gameState?.winner
+    ? (gameState.winner === PLAYER_1 ? (playerName || PLAYER_1) : (aiName || 'CPU'))
+    : (hasPlayerUnits ? (playerName || PLAYER_1) : (aiName || 'CPU'));
+  const controlTileEnabled = Boolean(gameState?.controlTileEnabled);
+  const controlTileX = gameState?.controlTileX;
+  const controlTileY = gameState?.controlTileY;
 
   const displayCurrentPlayer = gameState?.currentPlayer === PLAYER_1
     ? (playerName || PLAYER_1)
@@ -229,6 +235,11 @@ function App() {
       {gameState && (
         <p className="CurrentPlayer">
           Current Player: {displayCurrentPlayer}
+          {typeof gameState.turnNumber === 'number' && (
+            <span className="TurnCounter">
+              Turn {gameState.turnNumber}{gameState.maxTurns ? ` / ${gameState.maxTurns}` : ''}
+            </span>
+          )}
         </p>
       )}
       {isGameOver && (
@@ -249,6 +260,12 @@ function App() {
                 <li>Click an empty highlighted tile to move, then your turn ends.</li>
                 <li>To attack, click an enemy unit that is adjacent (including diagonals).</li>
                 <li>Each unit can either move or attack during a turn.</li>
+                {controlTileEnabled && (
+                  <li>Hold the green control tile for 5 consecutive turns to win.</li>
+                )}
+                {controlTileEnabled && (
+                  <li>If no winner by turn 30, the higher total HP wins (ties go to CPU).</li>
+                )}
                 <li>When all units for one side are defeated, the other side wins.</li>
               </ul>
             </div>
@@ -262,11 +279,12 @@ function App() {
                   const unit = liveUnits.find((u) => u.x === x && u.y === y);
                   const isValidMove = validMoveSet.has(`${x},${y}`);
                   const isPlayerUnit = unit?.owner === PLAYER_1;
+                  const isControlTile = controlTileEnabled && controlTileX === x && controlTileY === y;
                   return (
                     <button
                       type="button"
                       key={`${x}-${y}`}
-                      className={`Cell ${isValidMove ? 'Cell-valid' : ''}`}
+                      className={`Cell ${isValidMove ? 'Cell-valid' : ''} ${isControlTile ? 'Cell-control' : ''}`}
                       role="gridcell"
                       onClick={() => handleCellClick(x, y, unit)}
                       disabled={isGameOver}

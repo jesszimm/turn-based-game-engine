@@ -16,7 +16,8 @@ public sealed class GameStore
             Player1Name = "Player 1",
             Player2Name = "Player 2",
             BoardWidth = 5,
-            BoardHeight = 5
+            BoardHeight = 5,
+            ControlTileEnabled = difficulty == AiDifficulty.Hard
         });
 
         if (createResult.IsFailure || service.CurrentGame == null)

@@ -33,9 +33,20 @@ public sealed class AiDecisionService
         {
             if (state.Difficulty == AiDifficulty.Hard)
             {
-                var retreat = TryFindRetreatMove(game, aiUnits, enemyUnits, out var retreatUnit, out var retreatPosition);
-                if (retreat)
-                    return Move(retreatUnit.Id, retreatPosition);
+                var opponent = game.GetOpponent();
+                var opponentControlTurns = game.GetControlTurnsForPlayer(opponent.Id);
+                var opponentOnControl = game.ControlTileEnabled &&
+                    enemyUnits.Any(unit => unit.Position.Equals(game.ControlPosition));
+
+                var isAggressivePhase = game.TurnNumber >= 10;
+
+                if (!isAggressivePhase &&
+                    (!game.ControlTileEnabled || (opponentControlTurns < 2 && !opponentOnControl)))
+                {
+                    var retreat = TryFindRetreatMove(game, aiUnits, enemyUnits, out var retreatUnit, out var retreatPosition);
+                    if (retreat)
+                        return Move(retreatUnit.Id, retreatPosition);
+                }
             }
 
             var bestMoveFound = TrySelectMove(
@@ -77,8 +88,9 @@ public sealed class AiDecisionService
                 ? game.Player2.Id
                 : game.Player1.Id;
             var opponentControlTurns = game.GetControlTurnsForPlayer(opponentId);
+            var opponentOnControl = attackOptions.Any(option => option.DefenderOnControl);
 
-            if (opponentControlTurns < 2)
+            if (opponentControlTurns < 2 && !opponentOnControl)
             {
                 killOptions = killOptions
                     .Where(option => !IsGuaranteedDeath(option.Attacker, option.Defender, enemyUnits))
@@ -102,6 +114,7 @@ public sealed class AiDecisionService
             var orderedAttacks = attackOptions
                 .OrderByDescending(option => option.DefenderOnControl)
                 .ThenBy(option => option.AttackerPriority)
+                .ThenByDescending(option => difficulty == AiDifficulty.Hard ? option.IsKill : false)
                 .ThenBy(option => difficulty == AiDifficulty.Medium ? option.DefenderHealth : 0)
                 .ThenBy(option => option.DefenderHealth)
                 .ToList();
@@ -262,15 +275,20 @@ public sealed class AiDecisionService
         var preferredFirst = nextAiMoveUnitAbbreviation;
         var preferredSecond = preferredFirst == 'W' ? 'S' : 'W';
 
+        var isAggressivePhase = difficulty == AiDifficulty.Hard && game.TurnNumber >= 10;
+
         foreach (var unit in aiUnits)
         {
             var validMoves = game.Board.GetValidMovePositions(unit).ToList();
             foreach (var move in validMoves)
             {
-                if (difficulty == AiDifficulty.Hard && !IsMoveSafeHard(unit, move, enemyUnits))
+                var isControlMove = game.ControlTileEnabled && move.Equals(game.ControlPosition);
+
+                if (difficulty == AiDifficulty.Hard && !isAggressivePhase && !isControlMove && !IsMoveSafeHard(unit, move, enemyUnits))
                     continue;
 
-                var score = ScoreMove(unit, move, enemyUnits, difficulty, preferredFirst, preferredSecond, focusTargetId);
+                var score = ScoreMove(unit, move, enemyUnits, difficulty, preferredFirst, preferredSecond, focusTargetId,
+                    game.ControlTileEnabled, game.ControlPosition, isAggressivePhase);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -305,7 +323,10 @@ public sealed class AiDecisionService
         AiDifficulty difficulty,
         char preferredFirst,
         char preferredSecond,
-        Guid? focusTargetId)
+        Guid? focusTargetId,
+        bool controlTileEnabled,
+        Position controlPosition,
+        bool isAggressivePhase)
     {
         var minDistance = enemyUnits
             .Select(enemy => ChebyshevDistance(move, enemy.Position))
@@ -319,12 +340,17 @@ public sealed class AiDecisionService
             .Min();
 
         var unitPreference = GetUnitMovePriority(unit, preferredFirst, preferredSecond);
+        var controlDistance = controlTileEnabled ? ChebyshevDistance(move, controlPosition) : int.MaxValue;
+        var controlBonus = controlTileEnabled && controlDistance == 0 ? 40 : 0;
+        var controlAdjacencyBonus = controlTileEnabled && controlDistance == 1 ? 12 : 0;
+        var aggressionBonus = isAggressivePhase ? 6 : 0;
 
         return difficulty switch
         {
             AiDifficulty.Easy => -minDistance * 10 - unitPreference,
             AiDifficulty.Medium => (-minDistance * 10) - (unitPreference * 2) - focusDistance,
-            AiDifficulty.Hard => (-minDistance * 8) - (focusDistance * 4) - (unitPreference * 2),
+            AiDifficulty.Hard => (-minDistance * 8) - (focusDistance * 4) - (unitPreference * 2)
+                                 + controlBonus + controlAdjacencyBonus + aggressionBonus,
             _ => -minDistance * 10
         };
     }

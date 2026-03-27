@@ -36,7 +36,7 @@ public sealed class GameController : ControllerBase
         if (!TryGetSession(id, out var session, out var game))
             return NotFound();
 
-        return Ok(MapToDto(game));
+        return Ok(MapToDto(game, session));
     }
 
     [HttpPost("{id}/move")]
@@ -59,28 +59,31 @@ public sealed class GameController : ControllerBase
         if (unit == null || !unit.IsAlive)
             return BadRequest("Unit no longer exists");
 
+        if (IsGameOver(game, session, out var winner))
+            return Ok(MapToDto(game, session, winner));
+
         var result = service.MoveUnit(new MoveUnitCommand(unitId, request.X, request.Y));
         if (result.IsFailure)
             return BadRequest(result.ErrorMessage ?? "Invalid move");
 
-        if (service.IsGameOver())
-            return Ok(MapToDto(game));
+        if (IsGameOver(game, session, out winner))
+            return Ok(MapToDto(game, session, winner));
 
         var endTurn = service.EndTurn(new EndTurnCommand());
         if (endTurn.IsFailure)
         {
-            if (service.IsGameOver())
-                return Ok(MapToDto(game));
+            if (IsGameOver(game, session, out winner))
+                return Ok(MapToDto(game, session, winner));
 
             return BadRequest(endTurn.ErrorMessage ?? "Failed to end player turn");
         }
 
-        if (!service.IsGameOver())
+        if (!IsGameOver(game, session, out winner))
         {
             ExecuteAiTurn(session, game);
         }
 
-        return Ok(MapToDto(game));
+        return Ok(MapToDto(game, session, winner));
     }
 
     [HttpPost("{id}/attack")]
@@ -107,28 +110,31 @@ public sealed class GameController : ControllerBase
         if (attacker == null || !attacker.IsAlive || target == null || !target.IsAlive)
             return BadRequest("Unit no longer exists");
 
+        if (IsGameOver(game, session, out var winner))
+            return Ok(MapToDto(game, session, winner));
+
         var result = service.AttackUnit(new AttackUnitCommand(attackerId, targetId));
         if (result.IsFailure)
             return BadRequest(result.ErrorMessage ?? "Invalid attack");
 
-        if (service.IsGameOver())
-            return Ok(MapToDto(game));
+        if (IsGameOver(game, session, out winner))
+            return Ok(MapToDto(game, session, winner));
 
         var endTurn = service.EndTurn(new EndTurnCommand());
         if (endTurn.IsFailure)
         {
-            if (service.IsGameOver())
-                return Ok(MapToDto(game));
+            if (IsGameOver(game, session, out winner))
+                return Ok(MapToDto(game, session, winner));
 
             return BadRequest(endTurn.ErrorMessage ?? "Failed to end player turn");
         }
 
-        if (!service.IsGameOver())
+        if (!IsGameOver(game, session, out winner))
         {
             ExecuteAiTurn(session, game);
         }
 
-        return Ok(MapToDto(game));
+        return Ok(MapToDto(game, session, winner));
     }
 
     private static void ExecuteAiTurn(GameSession session, TurnBasedGame.Domain.Entities.Game game)
@@ -152,7 +158,10 @@ public sealed class GameController : ControllerBase
         _ = service.EndTurn(new EndTurnCommand());
     }
 
-    private static GameStateDto MapToDto(TurnBasedGame.Domain.Entities.Game game)
+    private static GameStateDto MapToDto(
+        TurnBasedGame.Domain.Entities.Game game,
+        GameSession session,
+        string? winnerOverride = null)
     {
         var units = game.Board.GetAllUnits()
             .Select(unit => new UnitDto
@@ -169,10 +178,20 @@ public sealed class GameController : ControllerBase
             .Where(unit => unit.Health > 0)
             .ToList();
 
+        var maxTurns = session.Difficulty == AiDifficulty.Hard ? 30 : (int?)null;
+        var isGameOver = IsGameOver(game, session, out var winner);
+
         return new GameStateDto
         {
             CurrentPlayer = game.CurrentPlayer.Name,
-            Units = units
+            Units = units,
+            ControlTileEnabled = game.ControlTileEnabled,
+            ControlTileX = game.ControlTileEnabled ? game.ControlPosition.X : null,
+            ControlTileY = game.ControlTileEnabled ? game.ControlPosition.Y : null,
+            TurnNumber = game.TurnNumber,
+            MaxTurns = maxTurns,
+            IsGameOver = isGameOver,
+            Winner = winnerOverride ?? winner
         };
     }
 
@@ -194,6 +213,42 @@ public sealed class GameController : ControllerBase
     {
         return string.Join(", ", game.Board.GetAllUnits().Select(unit =>
             $"{unit.Id}:{unit.Name}:HP{unit.Stats.CurrentHealth}"));
+    }
+
+    private static bool IsGameOver(TurnBasedGame.Domain.Entities.Game game, GameSession session, out string? winnerName)
+    {
+        winnerName = game.GetWinner()?.Name;
+        if (winnerName != null)
+            return true;
+
+        if (session.Difficulty != AiDifficulty.Hard)
+            return false;
+
+        const int maxTurns = 30;
+        if (game.TurnNumber < maxTurns)
+            return false;
+
+        var player1Hp = game.GetPlayer1Units().Sum(unit => unit.Stats.CurrentHealth);
+        var player2Hp = game.GetPlayer2Units().Sum(unit => unit.Stats.CurrentHealth);
+
+        if (player1Hp == player2Hp)
+        {
+            var unitOnControl = game.ControlTileEnabled
+                ? game.Board.GetUnitAtPosition(game.ControlPosition)
+                : null;
+            if (unitOnControl != null)
+            {
+                winnerName = unitOnControl.OwnerId == game.Player1.Id ? game.Player1.Name : game.Player2.Name;
+            }
+            else
+            {
+                winnerName = game.Player2.Name;
+            }
+            return true;
+        }
+
+        winnerName = player1Hp > player2Hp ? game.Player1.Name : game.Player2.Name;
+        return true;
     }
 
     private static AiDifficulty? ParseDifficulty(string? difficulty)
