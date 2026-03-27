@@ -1,4 +1,15 @@
-# Getting Started with Create React App
+# TurnBasedGame.Web Frontend
+
+Play the web version: https://turn-based-game-engine.onrender.com/
+
+This frontend targets the deployed API via `REACT_APP_API_URL`.
+
+## Web Version Status
+The web UI is functional but does not yet include all ConsoleUI features (e.g., multiple AI difficulty levels, Human vs Human mode). Parity work is next now that the web version is stable.
+
+## Create React App Notes
+
+The project was bootstrapped with Create React App.
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

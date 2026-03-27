@@ -2,6 +2,8 @@
 
 A turn-based tactical grid game built in C#/.NET with clean layer boundaries and deterministic combat.
 
+Play the web version: https://turn-based-game-engine.onrender.com/
+
 This project is designed as a portfolio example for recruiters and hiring teams: it demonstrates practical domain modeling, clear architecture, testability, and iterative product polish.
 
 ## What The Game Does
@@ -21,6 +23,10 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 - Control tile win: hold the green center tile for 5 turns to win.
 - Control tile only appears on Hard AI.
 
+## Web Version Status
+
+The web version is functional and playable, but it does not yet include every feature available in the ConsoleUI (e.g., multiple AI difficulty levels, Human vs Human mode). I’m working on parity next now that the web experience is stable.
+
 ## AI Behavior (Current)
 
 - AI controls Player 2 when enabled at game start.
@@ -34,7 +40,10 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 ## Why This Project Is Interesting
 
 - Domain rules are explicit and enforced in code (movement, range, turn ownership, victory).
-- The app uses a layered architecture (`Domain`, `Application`, `ConsoleUI`) rather than a monolith.
+- The app uses a layered architecture (`Domain`, `Application`, `ConsoleUI`, `Web`) rather than a monolith.
+- The Web API exposes a minimal, stable DTO surface so the UI never touches domain entities.
+- Full end-to-end flow: React UI → ASP.NET Core API → GameService → DTOs → UI render.
+- Production deployment is containerized with Docker and environment-driven configuration.
 - Console UX was intentionally iterated:
   - 1-indexed coordinates for human-friendly input
   - tactical-grid rendering
@@ -51,6 +60,12 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 - `TurnBasedGame.Application`:
   - command contracts, `GameService`, `Result` pattern
   - orchestrates domain behavior and returns user-safe outcomes
+- `TurnBasedGame.Web/backend`:
+  - ASP.NET Core API with CORS, DTOs, and session storage
+  - exposes `create`, `get`, `move`, and `attack` endpoints
+- `TurnBasedGame.Web/frontend`:
+  - React UI that renders the board and calls the API
+  - keeps state in sync by replacing with server responses
 - `TurnBasedGame.ConsoleUI`:
   - input loop and board rendering
   - no business rules
@@ -65,7 +80,7 @@ See layer-specific READMEs for detail:
 
 ## Tech Stack
 
-- `.NET 9`
+- `.NET 8`
 - `C#`
 - `xUnit`
 

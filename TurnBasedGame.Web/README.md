@@ -2,6 +2,8 @@
 
 A small full‑stack tactical game prototype that demonstrates clean API design, deterministic game rules, and a React UI that stays in sync with the backend.
 
+Play the web version: https://turn-based-game-engine.onrender.com/
+
 ## Why This Project (Recruiter‑Focused)
 - Clear separation of concerns: domain logic lives outside the UI, and the web layer only consumes DTOs.
 - End‑to‑end flow: frontend → API → game engine → DTOs → frontend rendering.
@@ -17,6 +19,9 @@ A small full‑stack tactical game prototype that demonstrates clean API design,
 - Move a unit or attack an adjacent enemy.
 - Watch AI turns execute automatically.
 - See unit stats and game‑over states update immediately.
+
+## Web Version Status
+The web version is functional but does not yet include every ConsoleUI feature (e.g., multiple AI difficulty levels, Human vs Human mode). I’m working on parity next now that the web experience is stable.
 
 ## API Endpoints (Phase 1)
 - `POST /api/game/create` → create a new game session
@@ -39,6 +44,11 @@ npm start
 ```
 
 The frontend expects the API at `http://localhost:5187`.
+
+If you are using the deployed backend, set:
+```
+REACT_APP_API_URL=https://turnbasedgame-api.onrender.com
+```
 
 ## Notes For Reviewers
 - DTOs are intentionally minimal and decoupled from the domain model.

@@ -2,6 +2,8 @@
 
 Console presentation layer for the tactical game.
 
+Play the web version: https://turn-based-game-engine.onrender.com/
+
 ## Responsibility
 
 - Gather player input.
@@ -11,6 +13,9 @@ Console presentation layer for the tactical game.
 - Run the minimal AI turn loop when Human vs AI mode is enabled.
 
 No game rules are implemented here.
+
+## Console vs Web
+The ConsoleUI currently includes additional features (e.g., Human vs Human mode and multiple AI difficulty levels) that the web UI does not yet expose. Web parity is in progress.
 
 ## UX Features
 
