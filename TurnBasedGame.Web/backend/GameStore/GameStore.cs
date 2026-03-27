@@ -7,7 +7,7 @@ public sealed class GameStore
 {
     private readonly Dictionary<string, GameSession> _games = new();
 
-    public string CreateGame()
+    public string CreateGame(AiDifficulty difficulty)
     {
         var gameId = Guid.NewGuid().ToString("N");
         var service = new GameService();
@@ -23,7 +23,7 @@ public sealed class GameStore
             throw new InvalidOperationException("Failed to create game");
 
         SeedUnits(service);
-        _games[gameId] = new GameSession(service);
+        _games[gameId] = new GameSession(service, difficulty);
         return gameId;
     }
 

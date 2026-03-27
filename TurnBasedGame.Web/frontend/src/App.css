@@ -250,6 +250,14 @@
   font-size: 14px;
 }
 
+.NameField select {
+  padding: 6px 8px;
+  border: 1px solid #d1c2ad;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fffaf2;
+}
+
 .SelectedUnit {
   margin: 6px 0 0;
 }

@@ -20,9 +20,13 @@ public sealed class GameController : ControllerBase
     }
 
     [HttpPost("create")]
-    public ActionResult Create()
+    public ActionResult Create([FromBody] CreateGameRequestDto? request)
     {
-        var gameId = _gameStore.CreateGame();
+        var difficulty = ParseDifficulty(request?.Difficulty);
+        if (difficulty == null)
+            return BadRequest("Invalid difficulty");
+
+        var gameId = _gameStore.CreateGame(difficulty.Value);
         return Ok(new { gameId });
     }
 
@@ -131,7 +135,7 @@ public sealed class GameController : ControllerBase
     {
         var service = session.Service;
         var aiService = new AiDecisionService();
-        var decisionState = new AiDecisionState(game, AiDifficulty.Easy, session.NextAiMoveUnitAbbreviation, session.FocusTargetId);
+        var decisionState = new AiDecisionState(game, session.Difficulty, session.NextAiMoveUnitAbbreviation, session.FocusTargetId);
         var decision = aiService.Decide(decisionState);
         session.FocusTargetId = decisionState.FocusTargetId;
 
@@ -190,5 +194,15 @@ public sealed class GameController : ControllerBase
     {
         return string.Join(", ", game.Board.GetAllUnits().Select(unit =>
             $"{unit.Id}:{unit.Name}:HP{unit.Stats.CurrentHealth}"));
+    }
+
+    private static AiDifficulty? ParseDifficulty(string? difficulty)
+    {
+        if (string.IsNullOrWhiteSpace(difficulty))
+            return AiDifficulty.Easy;
+
+        return Enum.TryParse(difficulty, ignoreCase: true, out AiDifficulty parsed)
+            ? parsed
+            : null;
     }
 }

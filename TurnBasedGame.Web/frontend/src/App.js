@@ -14,6 +14,7 @@ function App() {
   const [isLoadingGame, setIsLoadingGame] = useState(false);
   const [playerName, setPlayerName] = useState(PLAYER_1);
   const [aiName, setAiName] = useState('CPU');
+  const [aiDifficulty, setAiDifficulty] = useState('Easy');
   const boardSize = 5;
   const gameStateRef = useRef(gameState);
   const hasInitialized = useRef(false);
@@ -32,7 +33,7 @@ function App() {
     setGameState(null);
     setSelectedUnitId(null);
     setMoveError(null);
-    const createResponse = await createGame();
+    const createResponse = await createGame({ difficulty: aiDifficulty });
 
     if (!createResponse.ok) {
       throw new Error(`Create failed: ${createResponse.status}`);
@@ -42,7 +43,7 @@ function App() {
     setGameId(createData.gameId);
     await fetchGameState(createData.gameId);
     setIsLoadingGame(false);
-  }, [fetchGameState]);
+  }, [fetchGameState, aiDifficulty]);
 
   useEffect(() => {
     gameStateRef.current = gameState;
@@ -206,6 +207,17 @@ function App() {
             onChange={(event) => setAiName(event.target.value)}
             placeholder="CPU"
           />
+        </label>
+        <label className="NameField">
+          AI difficulty
+          <select
+            value={aiDifficulty}
+            onChange={(event) => setAiDifficulty(event.target.value)}
+          >
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
         </label>
       </div>
       <button type="button" className="NewGameButton" onClick={handleNewGameClick}>

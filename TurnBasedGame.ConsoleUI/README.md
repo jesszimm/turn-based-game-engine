@@ -15,7 +15,7 @@ Play the web version: https://turn-based-game-engine.onrender.com/
 No game rules are implemented here.
 
 ## Console vs Web
-The ConsoleUI currently includes additional features (e.g., Human vs Human mode and multiple AI difficulty levels) that the web UI does not yet expose. Web parity is in progress.
+The ConsoleUI currently includes additional features (e.g., Human vs Human mode and full ruleset parity) that the web UI does not yet expose. Web parity is in progress.
 
 ## UX Features
 

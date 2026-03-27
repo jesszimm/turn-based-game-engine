@@ -1,13 +1,17 @@
-const API_BASE = "https://turnbasedgame-api.onrender.com";
+const API_URL = process.env.REACT_APP_API_URL;
 
 async function requestJson(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, options);
+  const response = await fetch(`${API_URL}${path}`, options);
   return response;
 }
 
-export async function createGame() {
-  const response = await requestJson('/api/game/create', { method: 'POST' });
-  return response;
+export async function createGame(payload) {
+  const options = { method: 'POST' };
+  if (payload) {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(payload);
+  }
+  return requestJson('/api/game/create', options);
 }
 
 export async function getGame(gameId) {

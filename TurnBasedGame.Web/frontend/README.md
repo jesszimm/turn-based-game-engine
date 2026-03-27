@@ -5,7 +5,7 @@ Play the web version: https://turn-based-game-engine.onrender.com/
 This frontend targets the deployed API via `REACT_APP_API_URL`.
 
 ## Web Version Status
-The web UI is functional but does not yet include all ConsoleUI features (e.g., multiple AI difficulty levels, Human vs Human mode). Parity work is next now that the web version is stable.
+The web UI is functional but does not yet include all ConsoleUI features (e.g., Human vs Human mode). Parity work is next now that the web version is stable.
 
 ## Create React App Notes
 

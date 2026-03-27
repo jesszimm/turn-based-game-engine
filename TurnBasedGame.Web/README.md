@@ -19,15 +19,21 @@ Play the web version: https://turn-based-game-engine.onrender.com/
 - Move a unit or attack an adjacent enemy.
 - Watch AI turns execute automatically.
 - See unit stats and game‑over states update immediately.
+- Select AI difficulty (Easy, Medium, Hard) before starting a new game.
 
 ## Web Version Status
-The web version is functional but does not yet include every ConsoleUI feature (e.g., multiple AI difficulty levels, Human vs Human mode). I’m working on parity next now that the web experience is stable.
+The web version is functional but does not yet include every ConsoleUI feature (e.g., Human vs Human mode). I’m working on parity next now that the web experience is stable.
 
 ## API Endpoints (Phase 1)
-- `POST /api/game/create` → create a new game session
+- `POST /api/game/create` → create a new game session (accepts optional `difficulty`)
 - `GET /api/game/{id}` → get current state
 - `POST /api/game/{id}/move` → move a unit
 - `POST /api/game/{id}/attack` → attack a unit
+
+Example create with difficulty:
+```json
+{ "difficulty": "Medium" }
+```
 
 ## How To Run Locally
 

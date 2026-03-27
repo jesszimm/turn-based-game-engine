@@ -25,7 +25,7 @@ This project is designed as a portfolio example for recruiters and hiring teams:
 
 ## Web Version Status
 
-The web version is functional and playable, but it does not yet include every feature available in the ConsoleUI (e.g., multiple AI difficulty levels, Human vs Human mode). I’m working on parity next now that the web experience is stable.
+The web version is functional and playable, but it does not yet include every feature available in the ConsoleUI (e.g., Human vs Human mode). I’m working on parity next now that the web experience is stable.
 
 ## AI Behavior (Current)
 
@@ -36,6 +36,8 @@ The web version is functional and playable, but it does not yet include every fe
   - if no attack is available, alternate preferred mover each AI turn:
     - `Warrior` turn, then `Scout` turn, then repeat
   - if preferred unit cannot move, AI falls back to the other unit
+
+AI difficulty levels are supported in the engine (Easy, Medium, Hard). The web UI exposes difficulty selection at game start, while the ConsoleUI includes the full set of options and rules (including Hard control-tile win conditions).
 
 ## Why This Project Is Interesting
 

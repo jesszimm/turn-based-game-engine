@@ -7,8 +7,11 @@ namespace TurnBasedGame.Tests;
 
 public sealed class AiDecisionServiceTests
 {
-    [Fact]
-    public void Decide_IsDeterministic_ForSameState()
+    [Theory]
+    [InlineData(AiDifficulty.Easy)]
+    [InlineData(AiDifficulty.Medium)]
+    [InlineData(AiDifficulty.Hard)]
+    public void Decide_IsDeterministic_ForSameState(AiDifficulty difficulty)
     {
         var service = CreateBasicGame();
         var game = service.CurrentGame!;
@@ -20,8 +23,8 @@ public sealed class AiDecisionServiceTests
 
         var aiService = new AiDecisionService();
 
-        var stateA = new AiDecisionState(game, AiDifficulty.Easy, 'W', null);
-        var stateB = new AiDecisionState(game, AiDifficulty.Easy, 'W', null);
+        var stateA = new AiDecisionState(game, difficulty, 'W', null);
+        var stateB = new AiDecisionState(game, difficulty, 'W', null);
 
         var decisionA = aiService.Decide(stateA);
         var decisionB = aiService.Decide(stateB);
@@ -94,6 +97,31 @@ public sealed class AiDecisionServiceTests
         var result = service.MoveUnit(new MoveUnitCommand(decision.UnitId, decision.TargetPosition!.X, decision.TargetPosition!.Y));
         Assert.True(result.IsSuccess);
         Assert.Equal(decision.TargetPosition, aiUnit.Position);
+    }
+
+    [Theory]
+    [InlineData(AiDifficulty.Easy, "Scout")]
+    [InlineData(AiDifficulty.Medium, "Warrior")]
+    [InlineData(AiDifficulty.Hard, "Warrior")]
+    public void Decide_PrioritizesExpectedAttacker_ByDifficulty(AiDifficulty difficulty, string expectedUnitName)
+    {
+        var service = CreateBasicGame();
+        var game = service.CurrentGame!;
+
+        var scout = PlaceUnit(service, game.Player2.Id, "Scout", 1, 1, 40, 12, 2);
+        var warrior = PlaceUnit(service, game.Player2.Id, "Warrior", 2, 1, 55, 20, 2);
+        _ = PlaceUnit(service, game.Player1.Id, "Warrior", 1, 2, 50, 10, 2);
+
+        AdvanceToPlayer2Turn(service);
+
+        var aiService = new AiDecisionService();
+        var state = new AiDecisionState(game, difficulty, 'W', null);
+        var decision = aiService.Decide(state);
+
+        Assert.Equal(AiDecisionAction.Attack, decision.ActionType);
+
+        var expectedUnit = expectedUnitName == "Scout" ? scout : warrior;
+        Assert.Equal(expectedUnit.Id, decision.UnitId);
     }
 
     private static GameService CreateBasicGame()

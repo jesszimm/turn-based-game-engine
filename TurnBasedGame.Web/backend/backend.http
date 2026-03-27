@@ -5,6 +5,15 @@ Accept: application/json
 
 ###
 
+POST {{backend_HostAddress}}/api/game/create
+Content-Type: application/json
+
+{
+  "difficulty": "Medium"
+}
+
+###
+
 @gameId = REPLACE_WITH_GAME_ID
 
 GET {{backend_HostAddress}}/api/game/{{gameId}}

@@ -7,9 +7,9 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<GameStore>();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("ProdCors", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("https://turn-based-game-engine.onrender.com")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -22,10 +22,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors(policy =>
-    policy.AllowAnyOrigin()
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+app.UseCors("ProdCors");
 
 app.MapGet("/", () => "API is running");
 
