@@ -20,7 +20,7 @@ public sealed class AiDecisionService
         if (aiUnits.Count == 0 || enemyUnits.Count == 0)
             return Skip(state);
 
-        state.FocusTargetId = UpdateFocusTarget(state.FocusTargetId, enemyUnits);
+        state.FocusTargetId = UpdateFocusTarget(state.FocusTargetId, enemyUnits, state.Difficulty);
 
         if (game.HasAttackedThisTurn == false)
         {
@@ -31,14 +31,17 @@ public sealed class AiDecisionService
 
         if (game.HasMovedThisTurn == false)
         {
-            if (state.Difficulty == AiDifficulty.Hard)
+            var useHardLogic = state.Difficulty == AiDifficulty.Medium;
+            var useImpossibleLogic = state.Difficulty == AiDifficulty.Hard;
+
+            if (useHardLogic || useImpossibleLogic)
             {
                 var opponent = game.GetOpponent();
                 var opponentControlTurns = game.GetControlTurnsForPlayer(opponent.Id);
                 var opponentOnControl = game.ControlTileEnabled &&
                     enemyUnits.Any(unit => unit.Position.Equals(game.ControlPosition));
 
-                var isAggressivePhase = game.TurnNumber >= 10;
+                var isAggressivePhase = game.TurnNumber >= 10 || useImpossibleLogic;
 
                 if (!isAggressivePhase &&
                     (!game.ControlTileEnabled || (opponentControlTurns < 2 && !opponentOnControl)))
@@ -68,6 +71,9 @@ public sealed class AiDecisionService
 
     private static AiDecision? TrySelectAttack(Game game, List<Unit> aiUnits, List<Unit> enemyUnits, AiDifficulty difficulty)
     {
+        var useHardLogic = difficulty == AiDifficulty.Medium;
+        var useImpossibleLogic = difficulty == AiDifficulty.Hard;
+
         var attackOptions = (
             from attacker in aiUnits
             from defender in enemyUnits
@@ -75,14 +81,38 @@ public sealed class AiDecisionService
             select new AttackOption(
                 attacker,
                 defender,
-                game.ControlTileEnabled && difficulty == AiDifficulty.Hard &&
+                game.ControlTileEnabled && (useHardLogic || useImpossibleLogic) &&
                 defender.Position.Equals(game.ControlPosition),
                 defender.Stats.CurrentHealth <= attacker.Stats.AttackPower,
                 GetAiAttackerPriority(attacker, difficulty),
                 defender.Stats.CurrentHealth)).ToList();
 
+        if (useImpossibleLogic)
+        {
+            var aiTotalHp = GetTotalHp(aiUnits);
+            var enemyTotalHp = GetTotalHp(enemyUnits);
+            var bestScore = int.MinValue;
+            AttackOption? bestOption = null;
+
+            foreach (var option in attackOptions)
+            {
+                if (!IsAttackValid(game, option.Attacker, option.Defender))
+                    continue;
+
+                var score = ScoreAttackImpossible(game, option, enemyUnits, aiTotalHp, enemyTotalHp);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestOption = option;
+                }
+            }
+
+            if (bestOption != null)
+                return Attack(bestOption.Attacker.Id, bestOption.Defender.Id);
+        }
+
         var killOptions = attackOptions.Where(option => option.IsKill).ToList();
-        if (difficulty == AiDifficulty.Hard)
+        if (useHardLogic || useImpossibleLogic)
         {
             var opponentId = game.Player1.Id == game.CurrentPlayer.Id
                 ? game.Player2.Id
@@ -90,7 +120,11 @@ public sealed class AiDecisionService
             var opponentControlTurns = game.GetControlTurnsForPlayer(opponentId);
             var opponentOnControl = attackOptions.Any(option => option.DefenderOnControl);
 
-            if (opponentControlTurns < 2 && !opponentOnControl)
+            if (useImpossibleLogic)
+            {
+                // Hard AI now uses the most aggressive policy and never avoids risky kills.
+            }
+            else if (opponentControlTurns < 2 && !opponentOnControl)
             {
                 killOptions = killOptions
                     .Where(option => !IsGuaranteedDeath(option.Attacker, option.Defender, enemyUnits))
@@ -114,7 +148,7 @@ public sealed class AiDecisionService
             var orderedAttacks = attackOptions
                 .OrderByDescending(option => option.DefenderOnControl)
                 .ThenBy(option => option.AttackerPriority)
-                .ThenByDescending(option => difficulty == AiDifficulty.Hard ? option.IsKill : false)
+                .ThenByDescending(option => useHardLogic || useImpossibleLogic ? option.IsKill : false)
                 .ThenBy(option => difficulty == AiDifficulty.Medium ? option.DefenderHealth : 0)
                 .ThenBy(option => option.DefenderHealth)
                 .ToList();
@@ -162,9 +196,12 @@ public sealed class AiDecisionService
         ActionType = AiDecisionAction.Skip
     };
 
-    private static Guid? UpdateFocusTarget(Guid? currentFocus, List<Unit> enemyUnits)
+    private static Guid? UpdateFocusTarget(Guid? currentFocus, List<Unit> enemyUnits, AiDifficulty difficulty)
     {
         if (currentFocus != null && enemyUnits.Any(unit => unit.Id == currentFocus))
+            return currentFocus;
+
+        if (difficulty == AiDifficulty.Hard && currentFocus != null)
             return currentFocus;
 
         return enemyUnits.OrderBy(unit => unit.Stats.CurrentHealth).FirstOrDefault()?.Id;
@@ -275,7 +312,10 @@ public sealed class AiDecisionService
         var preferredFirst = nextAiMoveUnitAbbreviation;
         var preferredSecond = preferredFirst == 'W' ? 'S' : 'W';
 
-        var isAggressivePhase = difficulty == AiDifficulty.Hard && game.TurnNumber >= 10;
+        var isAggressivePhase = difficulty == AiDifficulty.Medium && game.TurnNumber >= 10;
+        var isImpossibleLogic = difficulty == AiDifficulty.Hard;
+        var aiTotalHp = GetTotalHp(aiUnits);
+        var enemyTotalHp = GetTotalHp(enemyUnits);
 
         foreach (var unit in aiUnits)
         {
@@ -284,11 +324,11 @@ public sealed class AiDecisionService
             {
                 var isControlMove = game.ControlTileEnabled && move.Equals(game.ControlPosition);
 
-                if (difficulty == AiDifficulty.Hard && !isAggressivePhase && !isControlMove && !IsMoveSafeHard(unit, move, enemyUnits))
+                if (difficulty == AiDifficulty.Medium && !isAggressivePhase && !isControlMove && !IsMoveSafeHard(unit, move, enemyUnits))
                     continue;
 
                 var score = ScoreMove(unit, move, enemyUnits, difficulty, preferredFirst, preferredSecond, focusTargetId,
-                    game.ControlTileEnabled, game.ControlPosition, isAggressivePhase);
+                    game.ControlTileEnabled, game.ControlPosition, isAggressivePhase || isImpossibleLogic, aiTotalHp, enemyTotalHp);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -326,7 +366,9 @@ public sealed class AiDecisionService
         Guid? focusTargetId,
         bool controlTileEnabled,
         Position controlPosition,
-        bool isAggressivePhase)
+        bool isAggressivePhase,
+        int aiTotalHp,
+        int enemyTotalHp)
     {
         var minDistance = enemyUnits
             .Select(enemy => ChebyshevDistance(move, enemy.Position))
@@ -344,15 +386,60 @@ public sealed class AiDecisionService
         var controlBonus = controlTileEnabled && controlDistance == 0 ? 40 : 0;
         var controlAdjacencyBonus = controlTileEnabled && controlDistance == 1 ? 12 : 0;
         var aggressionBonus = isAggressivePhase ? 6 : 0;
+        var hpAdvantage = aiTotalHp - enemyTotalHp;
+        var aggressionBias = hpAdvantage >= 0 ? 6 : -2;
 
         return difficulty switch
         {
             AiDifficulty.Easy => -minDistance * 10 - unitPreference,
-            AiDifficulty.Medium => (-minDistance * 10) - (unitPreference * 2) - focusDistance,
-            AiDifficulty.Hard => (-minDistance * 8) - (focusDistance * 4) - (unitPreference * 2)
-                                 + controlBonus + controlAdjacencyBonus + aggressionBonus,
+            AiDifficulty.Medium => (-minDistance * 8) - (focusDistance * 4) - (unitPreference * 2)
+                                   + controlBonus + controlAdjacencyBonus + aggressionBonus,
+            AiDifficulty.Hard => (-minDistance * 6) - (focusDistance * 6) - (unitPreference * 2)
+                                 + (controlBonus * 2) + (controlAdjacencyBonus * 2) + (aggressionBonus * 2)
+                                 + aggressionBias,
             _ => -minDistance * 10
         };
+    }
+
+    private static int GetTotalHp(IEnumerable<Unit> units)
+    {
+        return units.Sum(unit => unit.Stats.CurrentHealth);
+    }
+
+    private static int ScoreAttackImpossible(
+        Game game,
+        AttackOption option,
+        List<Unit> enemyUnits,
+        int aiTotalHp,
+        int enemyTotalHp)
+    {
+        var score = 0;
+
+        if (option.DefenderOnControl)
+            score += 80;
+
+        if (option.IsKill)
+            score += 60;
+
+        var defenderValue = option.Defender.Name.Contains("Warrior", StringComparison.OrdinalIgnoreCase) ? 20 : 12;
+        score += defenderValue;
+
+        var hpAdvantage = aiTotalHp - enemyTotalHp;
+        score += hpAdvantage >= 0 ? 8 : -6;
+
+        var retaliationDamage = enemyUnits
+            .Where(enemy => enemy.Id != option.Defender.Id)
+            .Where(enemy => enemy.Position.IsAdjacentTo(option.Attacker.Position, includeDiagonals: true))
+            .Select(enemy => enemy.Stats.AttackPower)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        if (retaliationDamage >= option.Attacker.Stats.CurrentHealth)
+            score -= option.IsKill ? 10 : 40;
+        else
+            score -= retaliationDamage / 2;
+
+        return score;
     }
 
     private sealed record AttackOption(

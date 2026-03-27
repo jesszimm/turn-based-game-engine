@@ -17,14 +17,22 @@ public sealed class GameStore
             Player2Name = "Player 2",
             BoardWidth = 5,
             BoardHeight = 5,
-            ControlTileEnabled = difficulty == AiDifficulty.Hard
+            ControlTileEnabled = difficulty is AiDifficulty.Medium or AiDifficulty.Hard
         });
 
         if (createResult.IsFailure || service.CurrentGame == null)
             throw new InvalidOperationException("Failed to create game");
 
         SeedUnits(service);
-        _games[gameId] = new GameSession(service, difficulty);
+        var session = new GameSession(service, difficulty);
+
+        if (difficulty == AiDifficulty.Hard)
+        {
+            _ = service.EndTurn(new EndTurnCommand());
+            session.ExecuteAiTurn(service.CurrentGame!);
+        }
+
+        _games[gameId] = session;
         return gameId;
     }
 

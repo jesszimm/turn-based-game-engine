@@ -80,7 +80,7 @@ public sealed class GameController : ControllerBase
 
         if (!IsGameOver(game, session, out winner))
         {
-            ExecuteAiTurn(session, game);
+            session.ExecuteAiTurn(game);
         }
 
         return Ok(MapToDto(game, session, winner));
@@ -131,31 +131,10 @@ public sealed class GameController : ControllerBase
 
         if (!IsGameOver(game, session, out winner))
         {
-            ExecuteAiTurn(session, game);
+            session.ExecuteAiTurn(game);
         }
 
         return Ok(MapToDto(game, session, winner));
-    }
-
-    private static void ExecuteAiTurn(GameSession session, TurnBasedGame.Domain.Entities.Game game)
-    {
-        var service = session.Service;
-        var aiService = new AiDecisionService();
-        var decisionState = new AiDecisionState(game, session.Difficulty, session.NextAiMoveUnitAbbreviation, session.FocusTargetId);
-        var decision = aiService.Decide(decisionState);
-        session.FocusTargetId = decisionState.FocusTargetId;
-
-        if (decision.ActionType == AiDecisionAction.Attack && decision.TargetId != null)
-        {
-            _ = service.AttackUnit(new AttackUnitCommand(decision.UnitId, decision.TargetId.Value));
-        }
-        else if (decision.ActionType == AiDecisionAction.Move && decision.TargetPosition != null)
-        {
-            _ = service.MoveUnit(new MoveUnitCommand(decision.UnitId, decision.TargetPosition.X, decision.TargetPosition.Y));
-            session.NextAiMoveUnitAbbreviation = session.NextAiMoveUnitAbbreviation == 'W' ? 'S' : 'W';
-        }
-
-        _ = service.EndTurn(new EndTurnCommand());
     }
 
     private static GameStateDto MapToDto(
@@ -178,7 +157,7 @@ public sealed class GameController : ControllerBase
             .Where(unit => unit.Health > 0)
             .ToList();
 
-        var maxTurns = session.Difficulty == AiDifficulty.Hard ? 30 : (int?)null;
+        var maxTurns = session.Difficulty is AiDifficulty.Medium or AiDifficulty.Hard ? 30 : (int?)null;
         var isGameOver = IsGameOver(game, session, out var winner);
 
         return new GameStateDto
@@ -221,7 +200,7 @@ public sealed class GameController : ControllerBase
         if (winnerName != null)
             return true;
 
-        if (session.Difficulty != AiDifficulty.Hard)
+        if (session.Difficulty is not (AiDifficulty.Medium or AiDifficulty.Hard))
             return false;
 
         const int maxTurns = 30;

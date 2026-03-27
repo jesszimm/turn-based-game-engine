@@ -28,7 +28,7 @@ public static class Program
 
         var isPlayer2Ai = ReadYesNo("Play against AI opponent? (Y/N): ");
         var aiDifficulty = isPlayer2Ai ? ReadAiDifficulty() : AiDifficulty.Easy;
-        var controlTileEnabled = isPlayer2Ai && aiDifficulty == AiDifficulty.Hard;
+        var controlTileEnabled = isPlayer2Ai && (aiDifficulty == AiDifficulty.Medium || aiDifficulty == AiDifficulty.Hard);
         _controlTileEnabled = controlTileEnabled;
         var player1Name = ReadRequiredString("Enter Player 1 name: ");
         var player2Name = isPlayer2Ai ? "CPU" : ReadRequiredString("Enter Player 2 name: ");
@@ -59,6 +59,16 @@ public static class Program
         ShowRulesSheet();
         WriteLineColored("Press Enter to start the match...", ConsoleColor.DarkCyan);
         System.Console.ReadLine();
+
+        if (isPlayer2Ai && aiDifficulty == AiDifficulty.Hard)
+        {
+            var endTurn = gameService.EndTurn(new EndTurnCommand());
+            if (endTurn.IsFailure)
+            {
+                WriteLineColored($"Could not start with AI turn: {endTurn.ErrorMessage}", ConsoleColor.Red);
+                return;
+            }
+        }
 
         while (!gameService.IsGameOver())
         {
@@ -535,7 +545,6 @@ public static class Program
         System.Console.WriteLine("[E] - Easy");
         System.Console.WriteLine("[M] - Medium");
         System.Console.WriteLine("[H] - Hard");
-
         while (true)
         {
             WriteColored("Difficulty (E/M/H): ", ConsoleColor.DarkCyan);
